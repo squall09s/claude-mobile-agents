@@ -35,7 +35,10 @@ Lis les fichiers que tes patches peuvent cibler :
 - `.claude/agents/api-reviewer.md` (symlink)
 - `.claude/agents/project-discoverer.md` (symlink)
 - `.claude/skills/feature/SKILL.md` (symlink)
-- (futur) `.claude/agents/ios-builder.md`, `android-builder.md`, `mobile-reviewer.md`
+- `.claude/agents/ios-builder.md` (symlink)
+- `.claude/agents/ios-reviewer.md` (symlink)
+- `.claude/agents/android-builder.md` (symlink)
+- `.claude/agents/android-reviewer.md` (symlink)
 
 Note : tu lis ces fichiers via leur chemin local au projet (le symlink résout transparentement vers le repo générique).
 

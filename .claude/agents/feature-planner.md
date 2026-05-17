@@ -77,18 +77,34 @@ Pour chaque champ entrant, indique :
 
 ### 8. iOS (si scope inclut mobile)
 
+iOS est implémenté **en premier** dans la séquence mobile. Le plan iOS doit être suffisamment précis pour que `ios-builder` produise du code qui servira de spec implicite à `android-builder`.
+
 Pour chaque écran à créer ou modifier :
 
-- Nom de l'écran (respecte le naming du projet)
-- État local nécessaire (Published vars, sources de données)
-- Si nouveau, où l'ajouter dans la navigation enum
-- Endpoint API appelé
-- Composants DS à réutiliser (cite ceux existants dans `project-context.md`)
-- Si un composant DS doit être créé, le préciser et **dire qu'il faudra le créer en parité Android**
+- **Nom exact** de l'écran : `<DomainScope><Name>Screen` (respecter la convention du projet)
+- **Paramètres** : strict `(id: String)` pour les écrans de détail (navigation par ID)
+- **État local** : liste des `@Published` à ajouter dans le store, états gérés (loading / error / empty / loaded)
+- **Endpoint API appelé** : URL + méthode HTTP + DTOs entrée/sortie
+- **Composants DS** à réutiliser : cite ceux existants (à lire dans `project-context.md`)
+- **Composant DS à créer** (si nécessaire) : nom préfixé, signature, **mention obligatoire qu'il faudra créer le miroir Android**
+- **Méthodes du store** à ajouter : signatures exactes (ex. `func fetchX(id: String) async`)
+- **Navigation** : case à ajouter dans l'enum (`case x(id: String)`)
 
 ### 9. Android (si scope inclut mobile)
 
-Symétrique d'iOS, en parité. Mêmes noms, même flow, même structure d'état.
+Android est implémenté **en parité stricte** avec iOS, en miroir des éléments listés ci-dessus.
+
+Pour chaque écran :
+
+- **Nom strict identique à iOS** : `<DomainScope><Name>Screen.kt` (avec extension `.kt`)
+- **Paramètres** : `(id: String, viewModel: <VM>)`
+- **État** : `StateFlow` miroir des `@Published` iOS
+- **Endpoint Retrofit** : même URL, même méthode HTTP, types `data class` miroir
+- **Composants DS** : mêmes noms que côté iOS (à créer en miroir si iOS en crée des nouveaux)
+- **Méthodes VM** : noms identiques à iOS (à un ajustement camelCase près si nécessaire)
+- **Navigation** : case dans `<Destination>` (`data class X(val id: String)`)
+
+Toute divergence inévitable avec iOS doit être listée explicitement avec sa raison technique (capacité OS, lib indisponible, idiomatique Kotlin).
 
 ### 10. Risques & points d'attention
 
@@ -153,14 +169,26 @@ Markdown structuré en français :
 - ...
 
 ## iOS (si scope inclut mobile)
-### Écran `<Nom>`
-- État local : ...
-- Endpoint appelé : ...
-- Composants DS : ...
+### Écran `<DomainScope><Name>Screen`
+- **Paramètres** : `(id: String)`
+- **État ajouté au store** : `@Published var x: XDto?`, `@Published var isLoading: Bool`
+- **Méthodes du store** : `func fetchX(id: String) async`
+- **Endpoint appelé** : `GET /api/v2/...` → `ResponseXDto`
+- **Composants DS réutilisés** : `<DSPrefix>Card`, `<DSPrefix>Badge`, ...
+- **Composants DS à créer** : `<DSPrefix>NewComponent(...)` — à reproduire côté Android
+- **Navigation** : ajout `case .x(id: String)` dans `<RouteEnum>`
 
 ## Android (si scope inclut mobile)
-### Écran `<Nom>`
-- (miroir iOS)
+### Écran `<DomainScope><Name>Screen` (miroir strict iOS)
+- **Paramètres** : `(id: String, viewModel: <VM>)`
+- **État dans le VM** : `StateFlow<XDto?>`, `StateFlow<Boolean>` pour isLoading
+- **Méthodes VM** : `suspend fun fetchX(id: String)`
+- **Endpoint Retrofit** : `@GET("/api/v2/...")` → `ResponseXDto`
+- **Composants DS** : mêmes noms qu'iOS (`<DSPrefix>Card`, `<DSPrefix>Badge`, `<DSPrefix>NewComponent`)
+- **Navigation** : ajout `data class X(val id: String) : <Destination>()`
+
+### Divergences anticipées avec iOS
+- (ou « aucune anticipée — full parité »)
 
 ## Module(s) de référence consulté(s)
 - `<chemin>` : ...

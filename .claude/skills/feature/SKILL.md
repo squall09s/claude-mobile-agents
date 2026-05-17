@@ -1,6 +1,6 @@
 ---
 name: feature
-description: Implémente une feature dans un projet mobile natif + API Node/TS, de bout en bout. Orchestre la discovery (si nécessaire), le planning, la construction (API et/ou mobile selon scope), la review, et la capture obligatoire du feedback. Une seule gate humaine après le plan. Le système V1 implémente officiellement le scope api ; les scopes mobile et api+mobile s'appuient sur les squelettes V2 (ios-builder, android-builder, mobile-reviewer) et signalent au dev les limites.
+description: Implémente une feature dans un projet mobile natif + API Node/TS, de bout en bout. Orchestre la discovery (si nécessaire), le planning, la construction (API et/ou mobile selon scope), la review, et la capture obligatoire du feedback. Une seule gate humaine après le plan. Scopes supportés : api, mobile, api+mobile. Le workflow mobile est séquentiel (iOS → Android) pour garantir la parité.
 ---
 
 # Skill `/feature` — orchestrateur de feature
@@ -17,6 +17,10 @@ Avant de lancer le moindre sub-agent :
    - `.claude/agents/feature-planner.md` accessible (symlink)
    - `.claude/agents/api-builder.md` accessible
    - `.claude/agents/api-reviewer.md` accessible
+   - `.claude/agents/ios-builder.md` accessible
+   - `.claude/agents/ios-reviewer.md` accessible
+   - `.claude/agents/android-builder.md` accessible
+   - `.claude/agents/android-reviewer.md` accessible
    - `.claude/agents/project-discoverer.md` accessible
    - `.claude/agents/system-retrospective.md` accessible
    Si un fichier manque, arrête-toi et signale : « Le système d'agents n'est pas correctement installé. Lance `~/work/claude-mobile-agents/install.sh` depuis la racine du projet. »
@@ -49,7 +53,7 @@ Lance l'agent `feature-planner` avec :
 - **Description de la feature** : la phrase fournie par l'utilisateur, telle quelle
 - **Contexte** : « Lis `CLAUDE.md` et `.claude/project-context.md`. Produis un plan technique conforme aux conventions du projet courant. Identifie le scope (api / mobile / api+mobile). Read-only. »
 
-Récupère le plan en sortie. Si le scope est `mobile` ou `api+mobile`, avertis le dev : « Cette feature touche le mobile. Le système V1 ne gère officiellement que le scope `api` ; ios-builder, android-builder et mobile-reviewer sont en squelette V2 et produiront un résultat partiel. Tu veux quand même continuer ou repositionner sur du backend uniquement ? »
+Récupère le plan en sortie. Si le scope est `mobile` ou `api+mobile`, rappelle au dev : « Cette feature touche le mobile. Le workflow sera séquentiel : iOS d'abord (ios-builder + ios-reviewer), puis Android qui porte le code iOS (android-builder + android-reviewer). Compter ~5-10 min selon la complexité, incluant deux builds (xcodebuild + gradle). »
 
 ## Étape 2 — Gate humaine (OBLIGATOIRE)
 
@@ -62,45 +66,48 @@ Affiche le plan **tel quel** dans la conversation, puis :
 
 **N'avance pas à l'étape 3 sans un « go » explicite.**
 
-## Étape 3 — Implémentation (aiguillage par scope)
+## Étape 3 — Implémentation et review (aiguillage par scope)
+
+Le workflow mobile est **séquentiel** : iOS d'abord, puis Android utilise le code iOS comme spec implicite pour garantir la parité. Les reviews suivent chaque builder, et `android-reviewer` lit aussi le code iOS pour auditer la parité.
 
 ### Scope = `api`
 
-Lance `api-builder` avec :
-- **Plan complet** validé
-- **Contexte** : « Implémente strictement le plan dans `<api-dir>` selon `project-context.md`. Compile avec la commande build du projet avant de rendre la main. Rapporte les fichiers touchés via `git -C <api-dir> status --short` et `git -C <api-dir> diff --stat`. »
+1. Lance `api-builder` avec :
+   - **Plan complet** validé
+   - **Contexte** : « Implémente strictement le plan dans `<api-dir>` selon `project-context.md`. Compile avec la commande build du projet avant de rendre la main. Rapporte les fichiers touchés via `git -C <api-dir> status --short` et `git -C <api-dir> diff --stat`. »
 
-Récupère le rapport du builder.
-
-### Scope = `mobile`
-
-Lance **en parallèle** `ios-builder` et `android-builder` avec :
-- **Plan complet** validé
-- **Contexte** : « Implémente la partie iOS (resp. Android) du plan selon `project-context.md`. Parité stricte avec l'autre plateforme. Compile avant de rendre. »
-
-Note : ces agents sont en squelette V2 — le rapport sera moins riche. Signale au dev.
-
-### Scope = `api+mobile`
-
-Séquence : **api-builder d'abord**, puis (api fini) lance `ios-builder` et `android-builder` en parallèle.
-
-Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code, pas forcément déployée) avant que le mobile soit écrit.
-
-## Étape 4 — Review
-
-### Scope = `api`
-
-Lance `api-reviewer` avec :
-- **Plan validé** + **rapport builder** + **liste des fichiers touchés**
-- **Contexte** : « Relis le delta git via `git -C <api-dir> diff`. Vérifie conformité à `CLAUDE.md` et `project-context.md`. Read-only. »
+2. Une fois api-builder fini, lance `api-reviewer` avec :
+   - **Plan validé** + **rapport api-builder** + **liste des fichiers touchés**
+   - **Contexte** : « Relis le delta git via `git -C <api-dir> diff`. Vérifie conformité à `CLAUDE.md` et `project-context.md`. Read-only. »
 
 ### Scope = `mobile`
 
-Lance `mobile-reviewer` (V2 squelette — résultat partiel).
+Séquence stricte : `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer`.
+
+1. Lance `ios-builder` avec :
+   - **Plan complet** validé
+   - **Contexte** : « Implémente la partie iOS du plan dans `<ios-dir>` selon `project-context.md`. Build via xcodebuild avant de rendre. Liste les nouveaux composants DS à reproduire côté Android. »
+
+2. Lance `ios-reviewer` avec :
+   - **Plan validé** + **rapport ios-builder** + **diff git iOS**
+   - **Contexte** : « Relis le delta git iOS. Vérifie conformité à CLAUDE.md et project-context.md. Liste précisément ce qu'android-builder devra reproduire (écrans, DS, méthodes VM, DTOs). Read-only. »
+
+3. Lance `android-builder` avec :
+   - **Plan complet** validé + **rapport ios-builder** + **rapport ios-reviewer** (en particulier la section « À reproduire côté Android »)
+   - **Contexte** : « Implémente la partie Android du plan dans `<android-dir>` en parité stricte avec le code iOS qui vient d'être produit (lis le diff git iOS). Mêmes noms d'écrans, composants DS, méthodes VM. Build via gradle assembleDebug avant de rendre. »
+
+4. Lance `android-reviewer` avec :
+   - **Plan validé** + **rapport android-builder** + **diff git Android** + **diff git iOS** (pour audit parité)
+   - **Contexte** : « Relis le delta git Android. Audite la parité stricte avec le code iOS (lis aussi <ios-dir>). Toute divergence non documentée est bloquante. Read-only. »
 
 ### Scope = `api+mobile`
 
-Lance d'abord `api-reviewer` puis `mobile-reviewer`. Combine les deux rapports dans la synthèse.
+Séquence complète : api d'abord, mobile ensuite.
+
+1. `api-builder` → `api-reviewer` (comme scope `api`)
+2. `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` (comme scope `mobile`)
+
+Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code) avant que le mobile soit écrit. Et iOS sert de spec pour Android.
 
 ## Étape 5 — Synthèse
 

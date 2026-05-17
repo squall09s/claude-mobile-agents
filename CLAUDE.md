@@ -86,7 +86,7 @@ Toute feature est classifiée par le `feature-planner` en un de ces trois scopes
 | Scope | Description | Agents impliqués |
 |---|---|---|
 | `api` | Touche uniquement l'API (ex. ajouter un endpoint admin, refactor backend) | feature-planner, api-builder, api-reviewer |
-| `mobile` | Touche uniquement iOS + Android (ex. refonte UI, nouveau composant DS) — l'API existante couvre déjà le besoin | feature-planner, ios-builder, android-builder, mobile-reviewer |
+| `mobile` | Touche uniquement iOS + Android (ex. refonte UI, nouveau composant DS) — l'API existante couvre déjà le besoin | feature-planner, ios-builder, ios-reviewer, android-builder, android-reviewer |
 | `api+mobile` | Touche l'API et les apps (cas le plus courant) | tous |
 
 Le planner **vérifie le contrat API existant** quand il évalue une feature `mobile`. Si l'API ne couvre pas le besoin, il bascule en `api+mobile`.
@@ -99,19 +99,24 @@ Le planner **vérifie le contrat API existant** quand il évalue une feature `mo
 /feature "<description>"
    │
    ├─ Pré-vol :
-   │    • project-context.md existe ? non → lancer project-discoverer
-   │    • repos git propres ? non → demander stash/commit/discard
+   │    • project-context.md existe et chemins renseignés ? non → lancer project-discoverer
+   │    • repos git propres ? non → avertissement (non bloquant)
    │
-   ├─ Étape 1 : feature-planner → plan (DB / routes / écrans / scope)
+   ├─ Étape 1 : feature-planner → plan (DB / routes / écrans iOS / écrans Android / scope)
    │
    ├─ GATE HUMAINE : go / revoir / stop
    │
    ├─ Étape 2 : selon scope
-   │    • api      → api-builder → api-reviewer
-   │    • mobile   → ios-builder + android-builder (parallèle) → mobile-reviewer
-   │    • api+mobile → api-builder → api-reviewer → ios-builder + android-builder → mobile-reviewer
+   │    • api        → api-builder → api-reviewer
+   │    • mobile     → ios-builder → ios-reviewer → android-builder → android-reviewer
+   │    • api+mobile → api-builder → api-reviewer → ios-builder → ios-reviewer → android-builder → android-reviewer
    │
-   ├─ Étape 3 : synthèse au dev (fichiers touchés, tests curl, verdict review)
+   │   Note : le workflow mobile est SÉQUENTIEL et iOS d'abord. android-builder
+   │   utilise le code iOS qui vient d'être produit comme spec implicite pour
+   │   garantir la parité (mêmes noms d'écrans, mêmes composants DS, même flow).
+   │   android-reviewer relit également le code iOS pour vérifier l'alignement.
+   │
+   ├─ Étape 3 : synthèse au dev (fichiers touchés, tests, verdict review)
    │
    ├─ Étape 4 : proposition de commit (1 par repo touché, message standardisé)
    │
@@ -216,7 +221,7 @@ Tous les agents et skills exploitent les repos git de chaque sous-projet :
 
 - **Pré-vol** : `git -C <dir> status --porcelain` est inspecté avant `/feature`. Si non vide, le skill **avertit** le dev (« attention, des modifications non commitées sont déjà présentes dans <dir>, le diff de cette feature pourra être imprécis ») et continue. Pas de blocage, libre au dev de stash/commit avant ou de laisser couler.
 - **api-builder, ios-builder, android-builder** : à la fin, `git -C <dir> status --short` et `git -C <dir> diff --stat` pour rapporter exactement ce qui a été touché
-- **api-reviewer, mobile-reviewer** : commencent par `git -C <dir> diff --name-only` puis `git -C <dir> diff <fichier>` ciblé — review du delta, pas du fichier entier
+- **api-reviewer, ios-reviewer, android-reviewer** : commencent par `git -C <dir> diff --name-only` puis `git -C <dir> diff <fichier>` ciblé — review du delta, pas du fichier entier. `android-reviewer` lit aussi `git -C <ios-dir> diff` pour vérifier la parité.
 - **Commit** : proposé en fin de feature au dev, **jamais** fait automatiquement. Format suggéré : `feat(<scope>): <slug>` ou `fix(<scope>): <slug>` selon le contexte
 - **Hash de commit** : capturé dans le journal de feedback si le dev a commit avant de répondre au formulaire
 
@@ -234,9 +239,10 @@ Chaque agent a un périmètre limité :
 | feature-planner | rien (read-only) |
 | api-builder | `<api-dir>/` selon `project-context.md` (sources, types, migrations) |
 | api-reviewer | rien (read-only) |
-| ios-builder | `<ios-dir>/` (V2) |
-| android-builder | `<android-dir>/` (V2) |
-| mobile-reviewer | rien (read-only) (V2) |
+| ios-builder | `<ios-dir>/` (sources Swift, DTOs, store, écrans, DS) |
+| ios-reviewer | rien (read-only) |
+| android-builder | `<android-dir>/` (sources Kotlin, DTOs Retrofit, VM, écrans, DS) |
+| android-reviewer | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
 | system-retrospective | rien (read-only, propose des diffs) |
 
 Tout agent qui tenterait d'écrire hors de son périmètre doit refuser et signaler.

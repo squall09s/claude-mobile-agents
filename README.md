@@ -25,8 +25,8 @@ L'équipage prend en charge la feature de bout en bout :
 3. **Validation humaine** sur le plan (`go` / `revoir` / `stop`)
 4. **Construction** selon scope :
    - `api` → `api-builder` puis `api-reviewer`
-   - `mobile` → `ios-builder` et `android-builder` en parallèle, puis `mobile-reviewer` *(V2)*
-   - `api+mobile` → API d'abord, mobile ensuite *(V2 côté mobile)*
+   - `mobile` → séquentiel : `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer`. Android porte le code iOS pour garantir la parité.
+   - `api+mobile` → API d'abord, puis mobile (séquence ci-dessus)
 5. **Compte-rendu** au développeur (fichiers touchés, tests, verdict review)
 6. **Proposition de commit** par sous-projet — jamais automatique
 7. **Journal de bord obligatoire** : 5 notes + 2 retours libres, archivé dans `.claude/feedback/`
@@ -61,9 +61,10 @@ Le vaisseau-mère (versionné, partagé entre tous les projets) :
     │   ├── feature-planner.md            ← stratège : plan + scope
     │   ├── api-builder.md                ← ingénieur API (Node+TS multi-framework)
     │   ├── api-reviewer.md               ← inspecteur API (review via git diff)
-    │   ├── ios-builder.md                ← ingénieur iOS (V2 — squelette)
-    │   ├── android-builder.md            ← ingénieur Android (V2 — squelette)
-    │   ├── mobile-reviewer.md            ← inspecteur mobile (V2 — squelette)
+    │   ├── ios-builder.md                ← ingénieur iOS (SwiftUI)
+    │   ├── ios-reviewer.md                ← inspecteur iOS (review via git diff + impact Android)
+    │   ├── android-builder.md             ← ingénieur Android (Compose, porte le code iOS)
+    │   ├── android-reviewer.md            ← inspecteur Android (review + audit parité iOS)
     │   └── system-retrospective.md       ← analyste : propose des améliorations
     └── skills/
         ├── feature/SKILL.md
@@ -172,9 +173,10 @@ Chaque membre d'équipage opère dans un périmètre verrouillé.
 | `feature-planner` | rien (read-only) |
 | `api-builder` | `<api-dir>/` (lu dans `project-context.md`) |
 | `api-reviewer` | rien (read-only) |
-| `ios-builder` *(V2)* | `<ios-dir>/` |
-| `android-builder` *(V2)* | `<android-dir>/` |
-| `mobile-reviewer` *(V2)* | rien (read-only) |
+| `ios-builder` | `<ios-dir>/` |
+| `ios-reviewer` | rien (read-only) |
+| `android-builder` | `<android-dir>/` |
+| `android-reviewer` | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
 | `system-retrospective` | rien (propose des diffs, `/feature-retro` applique) |
 
 **Aucun agent ne commit automatiquement.** Tout commit est proposé au développeur, jamais imposé.
@@ -213,25 +215,30 @@ Toutes les missions qui pointent vers ce vaisseau via leurs symlinks reçoivent 
 - **Claude Code** (CLI, app desktop, app web, ou IDE — tous compatibles)
 - **Node ≥ 20** et `npm` (pour `api-builder` qui compile)
 - **Git** (trois repos git attendus par projet : api, ios, android)
-- **Xcode** pour les builds iOS *(V2)*
-- **Gradle / Android Studio** pour les builds Android *(V2)*
+- **Xcode** pour les builds iOS (utilisé par `ios-builder` et `ios-reviewer`)
+- **Gradle / Android Studio** pour les builds Android (utilisé par `android-builder` et `android-reviewer`)
 
 ---
 
-## État de la flotte — V1
+## État de la flotte — V2
 
-✅ **Scope `api` opérationnel** : reconnaissance, planificateur, ingénieur API, inspecteur API, journal de bord, rétrospective.
+✅ **Tous les scopes opérationnels** :
 
-🚧 **Scope `mobile` et `api+mobile`** : ingénieurs iOS / Android et inspecteur mobile en **squelette**. Le système avertit le développeur lorsqu'une mission demande du mobile et propose soit de continuer en mode partiel, soit de recentrer la mission sur du backend.
+- **`api`** — reconnaissance, planificateur, ingénieur API, inspecteur API
+- **`mobile`** — ingénieur iOS (SwiftUI), inspecteur iOS, ingénieur Android (Compose, porte le code iOS), inspecteur Android (audite la parité)
+- **`api+mobile`** — séquence complète : API puis mobile (iOS d'abord, Android ensuite)
+- Journal de bord obligatoire à chaque mission, rétrospective via `/feature-retro`
+
+Le workflow mobile est **séquentiel** : iOS implémenté en premier, son code sert de spec implicite à Android. `android-reviewer` audite explicitement la parité (noms d'écrans, composants DS, méthodes VM, DTOs, cases de navigation).
 
 ---
 
-## Roadmap V2
+## Roadmap V3 (idées)
 
-- Compléter `ios-builder` avec connaissance fine de SwiftUI et adaptation au pattern d'archi du projet
-- Compléter `android-builder` avec connaissance fine de Compose et parité stricte iOS
-- Compléter `mobile-reviewer` avec checklist parité iOS ↔ Android
-- Ajouter un agent `parity-auditor` qui compare les sorties iOS et Android après les builders
+- Agent `parity-auditor` autonome pour les missions de refonte transverse (compare iOS et Android indépendamment du dernier diff)
+- Mode `--manual ios` pour skipper `ios-builder` quand le développeur préfère écrire SwiftUI à la main
+- Génération automatique de DTOs partagés via OpenAPI (réduire la duplication TS / Swift / Kotlin)
+- Snapshot tests automatiques sur les composants du design system maison
 
 ---
 
