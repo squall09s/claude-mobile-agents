@@ -46,12 +46,12 @@ Améliore le système à partir des journaux accumulés. À partir de 3 journaux
 
 ## 🛰️ Architecture
 
-Le vaisseau-mère (versionné, partagé entre tous les projets) :
+Le repo système (versionné, partagé entre tous les projets) :
 
 ```
 ~/work/claude-mobile-agents/
 ├── README.md
-├── install.sh                            ← module d'embarquement
+├── install.sh                            ← script d'installation par projet
 ├── CLAUDE.md                             ← philosophie générique
 ├── templates/
 │   └── project-context.md.template       ← gabarit du registre projet
@@ -72,26 +72,26 @@ Le vaisseau-mère (versionné, partagé entre tous les projets) :
         └── feature-retro/SKILL.md
 ```
 
-Chaque projet dispose d'une passerelle de commande locale :
+Chaque projet dispose d'une workspace de commande locale :
 
 ```
 <workspace>/
-├── CLAUDE.md                  → symlink vers le vaisseau-mère
+├── CLAUDE.md                  → symlink vers le repo système
 └── .claude/
-    ├── agents/                → symlink vers le vaisseau-mère
-    ├── skills/                → symlink vers le vaisseau-mère
+    ├── agents/                → symlink vers le repo système
+    ├── skills/                → symlink vers le repo système
     ├── project-context.md     ← local : stack et conventions du projet
     └── feedback/              ← local : journaux du projet
 ```
 
 ---
 
-## 🚀 Embarquement sur un nouveau projet
+## 🚀 Installation sur un nouveau projet
 
 > **Modèle « workspace de config »**
-> Le dossier où vit la passerelle Claude est un module dédié à la config. Il **ne contient pas** les trois repos (iOS, Android, API) — il les **référence** via leurs chemins absolus, déclarés dans `project-context.md`. Les repos restent à leur emplacement habituel sur le disque.
+> Le workspace Claude est un dossier dédié à la configuration. Il **ne contient pas** les trois repos (iOS, Android, API) — il les **référence** via leurs chemins absolus, déclarés dans `project-context.md`. Les repos restent à leur emplacement habituel sur le disque.
 
-### Étape 1 — Préparer la passerelle
+### Étape 1 — Préparer le workspace
 
 Choisir un emplacement pour la config Claude, séparé des repos de code. Recommandation : un dossier dédié par projet.
 
@@ -102,7 +102,7 @@ cd ~/Claude/MyApp
 
 Le nom du dossier est libre. C'est le **cwd** depuis lequel Claude Code sera lancé.
 
-### Étape 2 — Embarquer les agents
+### Étape 2 — Installer les agents
 
 ```bash
 bash ~/work/claude-mobile-agents/install.sh
@@ -111,7 +111,7 @@ bash ~/work/claude-mobile-agents/install.sh
 Le script :
 
 1. Sauvegarde les éventuels `CLAUDE.md` / `.claude/agents` / `.claude/skills` existants (suffixe `.backup.YYYYMMDD-HHMMSS`)
-2. Pose les symlinks vers le vaisseau-mère
+2. Pose les symlinks vers le repo système
 3. Crée `.claude/feedback/` local
 4. Copie le template `project-context.md.template` dans `.claude/project-context.md`
 5. Saisie interactive des coordonnées des trois repos (chemins absolus, validés à la volée)
@@ -142,7 +142,7 @@ Règles de saisie :
 ### Étape 4 — Première feature
 
 ```bash
-cd ~/Claude/MyApp       # la passerelle, pas un repo de code
+cd ~/Claude/MyApp       # le workspace, pas l'un des repos de code
 # (lancer Claude Code ici — terminal, app desktop, ou web)
 /feature "première feature"
 ```
@@ -160,7 +160,7 @@ Pour une structure existante du type :
 └── MyAppAndroid/
 ```
 
-`~/Code/MyApp/` peut servir directement de passerelle (lancer `install.sh` dedans). Les chemins absolus pointeront vers ses sous-dossiers.
+`~/Code/MyApp/` peut servir directement de workspace (lancer `install.sh` dedans). Les chemins absolus pointeront vers ses sous-dossiers.
 
 ---
 
@@ -195,20 +195,7 @@ Le système devient meilleur à chaque feature.
 4. Les patterns récurrents (signal présent au moins deux fois) déclenchent des patches :
    - **Projet** : durcissent `.claude/project-context.md` du projet courant
    - **Système** : améliorent les agents pour tous les projets futurs (confirmation supplémentaire requise)
-5. Patches validés un par un → appliqués → commit optionnel du vaisseau-mère
-
----
-
-## 🔄 Maintenance du système
-
-Le vaisseau-mère est versionné. Pour intégrer les améliorations partagées :
-
-```bash
-cd ~/work/claude-mobile-agents
-git pull
-```
-
-Tous les projets dont les symlinks pointent vers ce vaisseau reçoivent instantanément la nouvelle version. Aucune action requise côté projet.
+5. Patches validés un par un → appliqués → commit optionnel du repo système
 
 ---
 
@@ -245,4 +232,4 @@ Le workflow mobile est **séquentiel** : iOS implémenté en premier, son code s
 
 ## 📜 Licence
 
-Privé — usage personnel.
+[MIT](LICENSE) — utilisation libre, modification, distribution autorisées. Aucune garantie.
