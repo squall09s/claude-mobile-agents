@@ -22,6 +22,7 @@ Avant de lancer le moindre sub-agent :
    - `.claude/agents/android-builder.md` accessible
    - `.claude/agents/android-reviewer.md` accessible
    - `.claude/agents/parity-auditor.md` accessible
+   - `.claude/agents/ds-guardian.md` accessible
    - `.claude/agents/context-keeper.md` accessible
    - `.claude/agents/project-discoverer.md` accessible
    - `.claude/agents/system-retrospective.md` accessible
@@ -106,14 +107,18 @@ Séquence stricte : `ios-builder` → `ios-reviewer` → `android-builder` → `
    - **Plan validé** + **les 4 rapports précédents** + **domaines fonctionnels touchés** (déduits des chemins des fichiers modifiés)
    - **Contexte** : « Audite la parité iOS ↔ Android sur les domaines fonctionnels touchés par cette feature, indépendamment du diff git. Compare l'ensemble des écrans, composants DS, méthodes VM et DTOs présents dans les deux apps. Classe chaque divergence en nouvelle (introduite par cette feature, signal de trou dans la review) ou héritée (dette préexistante). Read-only. »
 
+6. Lance `ds-guardian` en mode **scoped** avec :
+   - **Diffs git iOS et Android** (fichiers touchés par cette feature)
+   - **Contexte** : « Mode `scoped`. Audite uniquement les fichiers touchés par cette feature. Focus sur axes 1 (bypass du DS sur les écrans) et 3 (cohérence fine iOS↔Android sur les composants touchés). N'exécute PAS les axes 2 et 4 (réservés au mode full). Read-only. Objectif : empêcher cette feature d'introduire une nouvelle dette DS. »
+
 ### Scope = `api+mobile`
 
 Séquence complète : api d'abord, mobile ensuite.
 
 1. `api-builder` → `api-reviewer` (comme scope `api`)
-2. `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` → `parity-auditor` (comme scope `mobile`)
+2. `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` → `parity-auditor` → `ds-guardian (scoped)` (comme scope `mobile`)
 
-Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code) avant que le mobile soit écrit. iOS sert ensuite de spec pour Android, et l'audit final consolide la vue parité.
+Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code) avant que le mobile soit écrit. iOS sert ensuite de spec pour Android. `parity-auditor` consolide la vue parité structurelle, `ds-guardian` vérifie le respect fin du design system.
 
 ## Étape 5 — Synthèse
 
@@ -122,8 +127,10 @@ Présente au dev en français concis :
 1. **Résumé** : ce qui a été créé / modifié (3-5 puces, regroupé par sous-projet)
 2. **Tests à passer** : commandes `curl` / actions UI fournies par les builders
 3. **Verdict review** : PASS / PASS_WITH_MINOR_ISSUES / BLOCKED
-4. **Bloquants** s'il y en a — avec proposition de relance du builder pour corriger
-5. **TODO restant** : si scope `api` mais que la review signale du portage iOS/Android nécessaire, lister précisément ce qu'il faudra ajouter
+4. **Audit DS** (si scope mobile / api+mobile) : verdict de ds-guardian scoped, bypass éventuels, divergences fines détectées
+5. **Bloquants** s'il y en a — avec proposition de relance du builder pour corriger
+6. **TODO restant** : si scope `api` mais que la review signale du portage iOS/Android nécessaire, lister précisément ce qu'il faudra ajouter
+7. **Suggestion `/ds-audit`** : si ds-guardian scoped a détecté des bypass / divergences récurrents, suggère de lancer `/ds-audit` en standalone plus tard pour un audit complet
 
 ## Étape 6 — Proposition de commit
 

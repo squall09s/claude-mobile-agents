@@ -52,6 +52,17 @@ Annule les traces de la dernière `/feature` lorsqu'elle s'est mal passée :
 3. **Ne touche pas aux commits git** des trois repos (à gérer à la main via `git reset` si nécessaire)
 4. Confirmation explicite avant chaque étape — granularité possible (`ok` / `contexte seul` / `journal seul` / `stop`)
 
+### `/ds-audit`
+
+Audit complet du design system du projet (côté iOS + Android), en mode standalone :
+
+1. **Bypass** : Button/TextField/Color bruts utilisés sur les écrans au lieu du design system
+2. **Doublons** : composants DS quasi-identiques, orphelins, sous-utilisés
+3. **Cohérence iOS↔Android** : signatures et styles fins qui divergent sans raison documentée
+4. **Suggestions** : nouveaux composants DS à créer quand un pattern brut se répète
+
+Read-only — produit un rapport, suggère des features de refacto. À lancer périodiquement (mensuel ou après une période d'ajout intensif d'écrans). Une version allégée (`ds-guardian` en mode scoped) tourne automatiquement à la fin de chaque `/feature` mobile pour empêcher l'introduction de nouvelle dette DS.
+
 ---
 
 ## 🛰️ Architecture
@@ -76,12 +87,14 @@ Le repo système (versionné, partagé entre tous les projets) :
     │   ├── android-builder.md            ← ingénieur Android (Compose, porte le code iOS)
     │   ├── android-reviewer.md           ← inspecteur Android (review + audit parité delta)
     │   ├── parity-auditor.md             ← auditeur parité (vue complète du domaine)
+    │   ├── ds-guardian.md                ← gardien du design system (bypass, doublons, cohérence)
     │   ├── context-keeper.md             ← gardien du project-context.md (lutte contre l'obsolescence)
     │   └── system-retrospective.md       ← analyste : propose des améliorations
     └── skills/
         ├── feature/SKILL.md
         ├── feature-retro/SKILL.md
-        └── feature-rollback/SKILL.md
+        ├── feature-rollback/SKILL.md
+        └── ds-audit/SKILL.md
 ```
 
 Chaque projet dispose d'une workspace de commande locale :
@@ -192,6 +205,7 @@ Chaque agent opère dans un périmètre verrouillé.
 | `android-builder` | `<android-dir>/` |
 | `android-reviewer` | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
 | `parity-auditor` | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/` pour auditer le domaine |
+| `ds-guardian` | rien (read-only) — audite le design system (modes scoped et full) |
 | `context-keeper` | rien (read-only) — propose des patches sur `.claude/project-context.md`, le skill `/feature` applique après validation |
 | `system-retrospective` | rien (propose des diffs, `/feature-retro` applique) |
 
@@ -234,9 +248,10 @@ Le système devient meilleur à chaque feature, sur deux axes :
 Tous les scopes opérationnels :
 
 - **`api`** — discovery, planificateur, builder API, reviewer API
-- **`mobile`** — builder iOS (SwiftUI), reviewer iOS, builder Android (Compose, porte le code iOS), reviewer Android (audit parité delta), parity-auditor (audit parité complète du domaine)
-- **`api+mobile`** — séquence complète : API puis mobile (iOS d'abord, Android ensuite, audit parité)
+- **`mobile`** — builder iOS (SwiftUI), reviewer iOS, builder Android (Compose, porte le code iOS), reviewer Android (audit parité delta), parity-auditor (audit parité complète du domaine), ds-guardian scoped (vérifie le respect fin du design system sur les fichiers touchés)
+- **`api+mobile`** — séquence complète : API puis mobile (iOS d'abord, Android ensuite, audit parité, audit DS)
 - **context-keeper** à la fin de chaque feature pour maintenir `.claude/project-context.md` à jour
+- **/ds-audit** standalone pour un audit complet du design system du projet
 - **/feature-rollback** pour annuler les traces de la dernière feature en cas de problème
 - Journal de bord obligatoire à chaque feature, rétrospective via `/feature-retro`
 
@@ -246,9 +261,11 @@ Le workflow mobile est **séquentiel** : iOS implémenté en premier, son code s
 
 ## 🛰️ Roadmap (idées)
 
+- Agent `test-author` pour générer des tests d'intégration API après chaque feature `api`
+- Agent `snapshot-tester-ds` pour des snapshot tests des composants du design system (iOS via swift-snapshot-testing, Android via Paparazzi/Roborazzi)
 - Génération automatique de DTOs partagés via OpenAPI pour réduire la duplication TS / Swift / Kotlin
-- Snapshot tests automatiques sur les composants du design system maison
 - Mode `--watch` pour `/feature-retro` qui surveille l'accumulation de divergences héritées dans plusieurs domaines et propose des features de remise à niveau
+- Agents qualité transverses : `performance-auditor`, `a11y-auditor`, `security-scanner`
 
 ---
 

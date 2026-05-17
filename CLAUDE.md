@@ -86,7 +86,7 @@ Toute feature est classifiée par le `feature-planner` en un de ces trois scopes
 | Scope | Description | Agents impliqués |
 |---|---|---|
 | `api` | Touche uniquement l'API (ex. ajouter un endpoint admin, refactor backend) | feature-planner, api-builder, api-reviewer |
-| `mobile` | Touche uniquement iOS + Android (ex. refonte UI, nouveau composant DS) — l'API existante couvre déjà le besoin | feature-planner, ios-builder, ios-reviewer, android-builder, android-reviewer, parity-auditor |
+| `mobile` | Touche uniquement iOS + Android (ex. refonte UI, nouveau composant DS) — l'API existante couvre déjà le besoin | feature-planner, ios-builder, ios-reviewer, android-builder, android-reviewer, parity-auditor, ds-guardian |
 | `api+mobile` | Touche l'API et les apps (cas le plus courant) | tous |
 
 Le planner **vérifie le contrat API existant** quand il évalue une feature `mobile`. Si l'API ne couvre pas le besoin, il bascule en `api+mobile`.
@@ -108,8 +108,8 @@ Le planner **vérifie le contrat API existant** quand il évalue une feature `mo
    │
    ├─ Étape 2 : selon scope
    │    • api        → api-builder → api-reviewer
-   │    • mobile     → ios-builder → ios-reviewer → android-builder → android-reviewer → parity-auditor
-   │    • api+mobile → api-builder → api-reviewer → ios-builder → ios-reviewer → android-builder → android-reviewer → parity-auditor
+   │    • mobile     → ios-builder → ios-reviewer → android-builder → android-reviewer → parity-auditor → ds-guardian (scoped)
+   │    • api+mobile → api-builder → api-reviewer → ios-builder → ios-reviewer → android-builder → android-reviewer → parity-auditor → ds-guardian (scoped)
    │
    │   Note : le workflow mobile est SÉQUENTIEL et iOS d'abord. android-builder
    │   utilise le code iOS qui vient d'être produit comme spec implicite pour
@@ -254,6 +254,7 @@ Chaque agent a un périmètre limité :
 | android-builder | `<android-dir>/` (sources Kotlin, DTOs Retrofit, VM, écrans, DS) |
 | android-reviewer | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
 | parity-auditor | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/`, audite l'ensemble du domaine touché |
+| ds-guardian | rien (read-only) — audite l'usage et la santé du design system (modes scoped et full) |
 | context-keeper | rien (read-only, propose des patches sur `.claude/project-context.md`) |
 | system-retrospective | rien (read-only, propose des diffs) |
 
