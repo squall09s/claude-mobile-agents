@@ -29,7 +29,8 @@ Implémente une feature de bout en bout :
    - `api+mobile` → API d'abord, puis la séquence mobile complète
 5. **Synthèse** au développeur (fichiers touchés, tests, verdict review, audit parité)
 6. **Proposition de commit** par sous-projet — jamais automatique
-7. **Journal de bord obligatoire** : 5 notes + 2 retours libres, archivé dans `.claude/feedback/`
+7. **Mise à jour du contexte projet** par `context-keeper` : propose jusqu'à 5 patches ciblés sur `.claude/project-context.md` (helpers réutilisables, composants DS, patterns d'archi confirmés). Patches validés un par un. Backup automatique avant application.
+8. **Journal de bord obligatoire** : 5 notes + 2 retours libres, archivé dans `.claude/feedback/`
 
 ### `/feature-retro`
 
@@ -41,6 +42,15 @@ Améliore le système à partir des journaux accumulés. À partir de 3 journaux
 4. **Application** des patches retenus
 5. **Commit optionnel** du repo système si des patches `système` ont été appliqués
 6. **Archivage** des journaux exploités
+
+### `/feature-rollback`
+
+Annule les traces de la dernière `/feature` lorsqu'elle s'est mal passée :
+
+1. **Restaure** `.claude/project-context.md` depuis le dernier backup créé par `context-keeper`
+2. **Archive** le dernier journal de feedback en `.rolled-back.md` (ignoré par `/feature-retro`)
+3. **Ne touche pas aux commits git** des trois repos (à gérer à la main via `git reset` si nécessaire)
+4. Confirmation explicite avant chaque étape — granularité possible (`ok` / `contexte seul` / `journal seul` / `stop`)
 
 ---
 
@@ -66,10 +76,12 @@ Le repo système (versionné, partagé entre tous les projets) :
     │   ├── android-builder.md            ← ingénieur Android (Compose, porte le code iOS)
     │   ├── android-reviewer.md           ← inspecteur Android (review + audit parité delta)
     │   ├── parity-auditor.md             ← auditeur parité (vue complète du domaine)
+    │   ├── context-keeper.md             ← gardien du project-context.md (lutte contre l'obsolescence)
     │   └── system-retrospective.md       ← analyste : propose des améliorations
     └── skills/
         ├── feature/SKILL.md
-        └── feature-retro/SKILL.md
+        ├── feature-retro/SKILL.md
+        └── feature-rollback/SKILL.md
 ```
 
 Chaque projet dispose d'une workspace de commande locale :
@@ -81,6 +93,7 @@ Chaque projet dispose d'une workspace de commande locale :
     ├── agents/                → symlink vers le repo système
     ├── skills/                → symlink vers le repo système
     ├── project-context.md     ← local : stack et conventions du projet
+    ├── .context-backup/        ← local : backups avant modifs context-keeper (pour /feature-rollback)
     └── feedback/              ← local : journaux du projet
 ```
 
@@ -179,6 +192,7 @@ Chaque agent opère dans un périmètre verrouillé.
 | `android-builder` | `<android-dir>/` |
 | `android-reviewer` | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
 | `parity-auditor` | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/` pour auditer le domaine |
+| `context-keeper` | rien (read-only) — propose des patches sur `.claude/project-context.md`, le skill `/feature` applique après validation |
 | `system-retrospective` | rien (propose des diffs, `/feature-retro` applique) |
 
 **Aucun agent ne commit automatiquement.** Tout commit est proposé au développeur, jamais imposé.
@@ -187,7 +201,13 @@ Chaque agent opère dans un périmètre verrouillé.
 
 ## 🧠 Boucle d'apprentissage
 
-Le système devient meilleur à chaque feature.
+Le système devient meilleur à chaque feature, sur deux axes :
+
+**Axe 1 — Mise à jour continue du contexte** (à chaque `/feature`)
+
+À la fin de chaque feature, `context-keeper` analyse les diffs et propose jusqu'à 5 patches conservateurs sur `.claude/project-context.md` (helpers réutilisables, nouveaux composants DS, patterns d'archi confirmés). Patches validés un par un, avec backup automatique avant application. Lutte directe contre l'obsolescence du contexte projet.
+
+**Axe 2 — Évolution du système** (via `/feature-retro`, occasionnellement)
 
 1. Chaque `/feature` se termine par un journal de bord obligatoire (5 notes + 2 retours libres)
 2. Le journal est archivé dans `.claude/feedback/<date>-<slug>.md`
@@ -216,6 +236,8 @@ Tous les scopes opérationnels :
 - **`api`** — discovery, planificateur, builder API, reviewer API
 - **`mobile`** — builder iOS (SwiftUI), reviewer iOS, builder Android (Compose, porte le code iOS), reviewer Android (audit parité delta), parity-auditor (audit parité complète du domaine)
 - **`api+mobile`** — séquence complète : API puis mobile (iOS d'abord, Android ensuite, audit parité)
+- **context-keeper** à la fin de chaque feature pour maintenir `.claude/project-context.md` à jour
+- **/feature-rollback** pour annuler les traces de la dernière feature en cas de problème
 - Journal de bord obligatoire à chaque feature, rétrospective via `/feature-retro`
 
 Le workflow mobile est **séquentiel** : iOS implémenté en premier, son code sert de spec implicite à Android. `android-reviewer` audite la parité du delta, `parity-auditor` audite la parité complète du domaine fonctionnel (incluant les divergences héritées accumulées).

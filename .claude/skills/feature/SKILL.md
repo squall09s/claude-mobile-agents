@@ -22,6 +22,7 @@ Avant de lancer le moindre sub-agent :
    - `.claude/agents/android-builder.md` accessible
    - `.claude/agents/android-reviewer.md` accessible
    - `.claude/agents/parity-auditor.md` accessible
+   - `.claude/agents/context-keeper.md` accessible
    - `.claude/agents/project-discoverer.md` accessible
    - `.claude/agents/system-retrospective.md` accessible
    Si un fichier manque, arrête-toi et signale : « Le système d'agents n'est pas correctement installé. Lance `~/work/claude-mobile-agents/install.sh` depuis la racine du projet. »
@@ -142,7 +143,53 @@ git -C <dir> commit -m "<type>(<scope>): <slug>"
 
 **Ne commit jamais sans accord explicite.** Récupère le hash du commit créé pour l'inclure dans le journal de feedback.
 
-## Étape 7 — Capture du feedback (OBLIGATOIRE)
+## Étape 7 — Mise à jour du contexte projet (OBLIGATOIRE)
+
+Cette étape lutte contre l'obsolescence du `project-context.md`. Sans elle, le contexte fige une photo qui se périme à mesure que le projet évolue.
+
+1. Lance l'agent `context-keeper` avec :
+   - **Contexte** : « Analyse les diffs des sous-projets touchés par cette feature et propose des mises à jour ciblées de `.claude/project-context.md` selon les critères conservateurs définis dans ton prompt. Read-only. »
+
+2. **Reçois son rapport**. Trois cas :
+
+   **a) Rien à intégrer** (cas fréquent et normal) : le rapport indique « Aucun patch nécessaire ». Annonce-le au dev et passe directement à l'étape 8.
+
+   **b) 1 à 5 patches proposés** : présente le rapport complet (analyse + patches) au dev. Puis pour chaque patch dans l'ordre :
+
+   > **Patch <N>** — [helper|ds-component|pattern|convention|dependency]
+   > Justification : `<...>`
+   >
+   > ```diff
+   > ...
+   > ```
+   >
+   > Réponds :
+   > - **« apply »** pour appliquer
+   > - **« skip »** pour passer
+   > - **« edit : ... »** pour ajuster avant d'appliquer
+   > - **« stop »** pour interrompre la mise à jour du contexte
+
+3. **Avant d'appliquer le premier patch validé**, crée un backup obligatoire :
+   ```bash
+   mkdir -p .claude/.context-backup
+   cp .claude/project-context.md ".claude/.context-backup/$(date +%Y-%m-%d)-<slug>-before.md"
+   ```
+   Ce backup permet à `/feature-rollback` de restaurer le contexte si la feature est annulée plus tard.
+
+4. **Applique les patches validés** via Edit ciblé sur `.claude/project-context.md`. Si le `old_string` du diff ne correspond pas exactement au fichier, signale-le et propose au dev de demander à `context-keeper` de regénérer ce patch précis.
+
+5. **Confirme** : « Patch N appliqué » (ou « skippé »).
+
+6. **Mets à jour le champ frontmatter** `Dernière mise à jour automatique` de `project-context.md` avec la date du jour.
+
+7. Récap au dev :
+   ```
+   Contexte mis à jour : <n> patches appliqués sur <m> proposés.
+   Backup : .claude/.context-backup/<date>-<slug>-before.md
+   Pour annuler : /feature-rollback
+   ```
+
+## Étape 8 — Capture du feedback (OBLIGATOIRE)
 
 **Ne saute jamais cette étape**, même si le dev est pressé. Sans feedback, `/feature-retro` n'a rien à exploiter.
 
@@ -169,7 +216,7 @@ Une fois la réponse reçue, écris le journal dans `.claude/feedback/YYYY-MM-DD
 
 Confirme : « Journal écrit dans `.claude/feedback/<filename>` — `/feature-retro` pourra l'exploiter. »
 
-## Étape 8 — Clôture
+## Étape 9 — Clôture
 
 Termine en demandant :
 
@@ -178,15 +225,19 @@ Termine en demandant :
 Si `.claude/feedback/` contient **5+ entrées non archivées**, ajoute :
 > 💡 Tu as `<n>` journaux accumulés — bon moment pour lancer `/feature-retro` dès que tu auras 10 minutes.
 
+Si la feature s'est mal passée et que tu veux tout annuler :
+> Tu peux lancer `/feature-rollback` pour restaurer le `project-context.md` et archiver le journal de feedback de cette feature. Les commits des 3 repos ne seront pas touchés (à faire à la main via `git reset` si nécessaire).
+
 ## Règles d'orchestration
 
-- **Une seule gate humaine** après le plan (et 1 gate de validation discovery au premier `/feature`). Pas d'autre gate pendant build/review.
+- **Gates humaines** : (1) après le plan, (2) à chaque patch context-keeper. Pas d'autre gate pendant build/review.
 - **Pré-vol git non bloquant** : avertis et continue.
-- **Discovery déclenchée automatiquement** si `project-context.md` absent.
+- **Discovery déclenchée automatiquement** si `project-context.md` absent ou incomplet (placeholders restants).
 - **Si un sub-agent échoue ou rend un output vide** : remonte au dev, ne tente pas de réparer toi-même.
 - **Si le build TS échoue dans api-builder** : api-builder doit corriger avant de rendre. Si persiste, remonte au dev.
-- **Tu n'écris jamais directement** dans les fichiers du projet (sauf le journal de feedback en étape 7) — délègue tout aux builders. Tu orchestres.
+- **Tu n'écris dans le projet** que (a) le journal de feedback en étape 8 et (b) les patches context-keeper validés en étape 7 (avec backup obligatoire avant la première application) — sinon délègue aux builders.
 - **Tu ne commits jamais** sans accord explicite à l'étape 6.
+- **Backup obligatoire** avant la première application d'un patch context-keeper, dans `.claude/.context-backup/`.
 
 ## Erreurs courantes à éviter
 

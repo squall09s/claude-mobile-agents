@@ -123,7 +123,14 @@ Le planner **vérifie le contrat API existant** quand il évalue une feature `mo
    │
    ├─ Étape 4 : proposition de commit (1 par repo touché, message standardisé)
    │
-   └─ Étape 5 : CAPTURE FEEDBACK OBLIGATOIRE
+   ├─ Étape 5 : context-keeper
+   │   Analyse les diffs et propose jusqu'à 5 patches ciblés sur
+   │   .claude/project-context.md (helpers réutilisables, composants DS,
+   │   patterns d'archi confirmés — conservateur). Patches validés un par un.
+   │   Backup auto dans .claude/.context-backup/ avant la première application.
+   │   Annulable via /feature-rollback.
+   │
+   └─ Étape 6 : CAPTURE FEEDBACK OBLIGATOIRE
         Format : 5 notes 1-5 + 2 textes libres + stats git
         Journal écrit dans .claude/feedback/YYYY-MM-DD-<slug>.md
 ```
@@ -247,6 +254,7 @@ Chaque agent a un périmètre limité :
 | android-builder | `<android-dir>/` (sources Kotlin, DTOs Retrofit, VM, écrans, DS) |
 | android-reviewer | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
 | parity-auditor | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/`, audite l'ensemble du domaine touché |
+| context-keeper | rien (read-only, propose des patches sur `.claude/project-context.md`) |
 | system-retrospective | rien (read-only, propose des diffs) |
 
 Tout agent qui tenterait d'écrire hors de son périmètre doit refuser et signaler.
