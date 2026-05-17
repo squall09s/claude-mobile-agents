@@ -21,6 +21,7 @@ Avant de lancer le moindre sub-agent :
    - `.claude/agents/ios-reviewer.md` accessible
    - `.claude/agents/android-builder.md` accessible
    - `.claude/agents/android-reviewer.md` accessible
+   - `.claude/agents/parity-auditor.md` accessible
    - `.claude/agents/project-discoverer.md` accessible
    - `.claude/agents/system-retrospective.md` accessible
    Si un fichier manque, arrête-toi et signale : « Le système d'agents n'est pas correctement installé. Lance `~/work/claude-mobile-agents/install.sh` depuis la racine du projet. »
@@ -53,7 +54,7 @@ Lance l'agent `feature-planner` avec :
 - **Description de la feature** : la phrase fournie par l'utilisateur, telle quelle
 - **Contexte** : « Lis `CLAUDE.md` et `.claude/project-context.md`. Produis un plan technique conforme aux conventions du projet courant. Identifie le scope (api / mobile / api+mobile). Read-only. »
 
-Récupère le plan en sortie. Si le scope est `mobile` ou `api+mobile`, rappelle au dev : « Cette feature touche le mobile. Le workflow sera séquentiel : iOS d'abord (ios-builder + ios-reviewer), puis Android qui porte le code iOS (android-builder + android-reviewer). Compter ~5-10 min selon la complexité, incluant deux builds (xcodebuild + gradle). »
+Récupère le plan en sortie. Si le scope est `mobile` ou `api+mobile`, rappelle au dev : « Cette feature touche le mobile. Le workflow sera séquentiel : iOS d'abord (ios-builder + ios-reviewer), puis Android qui porte le code iOS (android-builder + android-reviewer), puis parity-auditor pour un audit complet du domaine. Compter ~5-10 min selon la complexité, incluant deux builds (xcodebuild + gradle). »
 
 ## Étape 2 — Gate humaine (OBLIGATOIRE)
 
@@ -82,7 +83,7 @@ Le workflow mobile est **séquentiel** : iOS d'abord, puis Android utilise le co
 
 ### Scope = `mobile`
 
-Séquence stricte : `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer`.
+Séquence stricte : `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` → `parity-auditor`.
 
 1. Lance `ios-builder` avec :
    - **Plan complet** validé
@@ -100,14 +101,18 @@ Séquence stricte : `ios-builder` → `ios-reviewer` → `android-builder` → `
    - **Plan validé** + **rapport android-builder** + **diff git Android** + **diff git iOS** (pour audit parité)
    - **Contexte** : « Relis le delta git Android. Audite la parité stricte avec le code iOS (lis aussi <ios-dir>). Toute divergence non documentée est bloquante. Read-only. »
 
+5. Lance `parity-auditor` avec :
+   - **Plan validé** + **les 4 rapports précédents** + **domaines fonctionnels touchés** (déduits des chemins des fichiers modifiés)
+   - **Contexte** : « Audite la parité iOS ↔ Android sur les domaines fonctionnels touchés par cette feature, indépendamment du diff git. Compare l'ensemble des écrans, composants DS, méthodes VM et DTOs présents dans les deux apps. Classe chaque divergence en nouvelle (introduite par cette feature, signal de trou dans la review) ou héritée (dette préexistante). Read-only. »
+
 ### Scope = `api+mobile`
 
 Séquence complète : api d'abord, mobile ensuite.
 
 1. `api-builder` → `api-reviewer` (comme scope `api`)
-2. `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` (comme scope `mobile`)
+2. `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` → `parity-auditor` (comme scope `mobile`)
 
-Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code) avant que le mobile soit écrit. Et iOS sert de spec pour Android.
+Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code) avant que le mobile soit écrit. iOS sert ensuite de spec pour Android, et l'audit final consolide la vue parité.
 
 ## Étape 5 — Synthèse
 

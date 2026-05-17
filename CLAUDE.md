@@ -86,7 +86,7 @@ Toute feature est classifiée par le `feature-planner` en un de ces trois scopes
 | Scope | Description | Agents impliqués |
 |---|---|---|
 | `api` | Touche uniquement l'API (ex. ajouter un endpoint admin, refactor backend) | feature-planner, api-builder, api-reviewer |
-| `mobile` | Touche uniquement iOS + Android (ex. refonte UI, nouveau composant DS) — l'API existante couvre déjà le besoin | feature-planner, ios-builder, ios-reviewer, android-builder, android-reviewer |
+| `mobile` | Touche uniquement iOS + Android (ex. refonte UI, nouveau composant DS) — l'API existante couvre déjà le besoin | feature-planner, ios-builder, ios-reviewer, android-builder, android-reviewer, parity-auditor |
 | `api+mobile` | Touche l'API et les apps (cas le plus courant) | tous |
 
 Le planner **vérifie le contrat API existant** quand il évalue une feature `mobile`. Si l'API ne couvre pas le besoin, il bascule en `api+mobile`.
@@ -108,13 +108,16 @@ Le planner **vérifie le contrat API existant** quand il évalue une feature `mo
    │
    ├─ Étape 2 : selon scope
    │    • api        → api-builder → api-reviewer
-   │    • mobile     → ios-builder → ios-reviewer → android-builder → android-reviewer
-   │    • api+mobile → api-builder → api-reviewer → ios-builder → ios-reviewer → android-builder → android-reviewer
+   │    • mobile     → ios-builder → ios-reviewer → android-builder → android-reviewer → parity-auditor
+   │    • api+mobile → api-builder → api-reviewer → ios-builder → ios-reviewer → android-builder → android-reviewer → parity-auditor
    │
    │   Note : le workflow mobile est SÉQUENTIEL et iOS d'abord. android-builder
    │   utilise le code iOS qui vient d'être produit comme spec implicite pour
    │   garantir la parité (mêmes noms d'écrans, mêmes composants DS, même flow).
    │   android-reviewer relit également le code iOS pour vérifier l'alignement.
+   │   parity-auditor termine la séquence avec un audit complet du domaine
+   │   fonctionnel touché (pas juste le delta) pour détecter aussi les
+   │   divergences héritées qui se sont accumulées au fil des features.
    │
    ├─ Étape 3 : synthèse au dev (fichiers touchés, tests, verdict review)
    │
@@ -243,6 +246,7 @@ Chaque agent a un périmètre limité :
 | ios-reviewer | rien (read-only) |
 | android-builder | `<android-dir>/` (sources Kotlin, DTOs Retrofit, VM, écrans, DS) |
 | android-reviewer | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
+| parity-auditor | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/`, audite l'ensemble du domaine touché |
 | system-retrospective | rien (read-only, propose des diffs) |
 
 Tout agent qui tenterait d'écrire hors de son périmètre doit refuser et signaler.

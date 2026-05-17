@@ -1,6 +1,6 @@
 # 🛸 claude-mobile-agents
 
-Une flotte d'agents Claude Code spécialisés pour livrer des features de bout en bout sur des projets **mobile natif + API Node/TS**. L'équipage exécute, le développeur pilote.
+Système d'agents Claude Code pour livrer des features de bout en bout sur des projets **mobile natif + API Node/TS**. Les agents exécutent, le développeur orchestre et valide.
 
 Conçu pour des projets qui suivent ce schéma :
 
@@ -12,31 +12,31 @@ Conçu pour des projets qui suivent ce schéma :
 
 ---
 
-## 🧑‍🚀 L'équipage
+## 🧑‍🚀 Les agents
 
-Deux commandes accessibles depuis la passerelle (Claude Code).
+Deux commandes sont accessibles depuis Claude Code.
 
-### `/feature "<description>"` — lancer une mission
+### `/feature "<description>"`
 
-L'équipage prend en charge la feature de bout en bout :
+Implémente une feature de bout en bout :
 
-1. **Reconnaissance** au premier passage sur un projet — `project-discoverer` lit les chemins absolus déclarés puis complète `.claude/project-context.md` à partir du code scanné
-2. **Briefing** par `feature-planner` (détermine le scope : `api` / `mobile` / `api+mobile`)
-3. **Validation humaine** sur le plan (`go` / `revoir` / `stop`)
+1. **Discovery** au premier passage sur un projet — `project-discoverer` lit les chemins absolus déclarés puis complète `.claude/project-context.md` à partir du code scanné
+2. **Plan technique** par `feature-planner` (détermine le scope : `api` / `mobile` / `api+mobile`)
+3. **Gate humaine** sur le plan (`go` / `revoir` / `stop`)
 4. **Construction** selon scope :
    - `api` → `api-builder` puis `api-reviewer`
-   - `mobile` → séquentiel : `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer`. Android porte le code iOS pour garantir la parité.
-   - `api+mobile` → API d'abord, puis mobile (séquence ci-dessus)
-5. **Compte-rendu** au développeur (fichiers touchés, tests, verdict review)
+   - `mobile` → séquentiel : `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` → `parity-auditor`. Android porte le code iOS pour garantir la parité.
+   - `api+mobile` → API d'abord, puis la séquence mobile complète
+5. **Synthèse** au développeur (fichiers touchés, tests, verdict review, audit parité)
 6. **Proposition de commit** par sous-projet — jamais automatique
 7. **Journal de bord obligatoire** : 5 notes + 2 retours libres, archivé dans `.claude/feedback/`
 
-### `/feature-retro` — faire évoluer l'équipage
+### `/feature-retro`
 
-L'équipage apprend de ses missions. À partir de 3 journaux de bord accumulés, la rétrospective tourne :
+Améliore le système à partir des journaux accumulés. À partir de 3 journaux :
 
 1. **Analyse** par `system-retrospective` — lecture des journaux non archivés
-2. **Améliorations proposées** sous forme de diff, classées `projet` (locales à la mission courante) ou `système` (impactent toute la flotte)
+2. **Patches proposés** sous forme de diff, classés `projet` (locaux au projet courant) ou `système` (impactent tous les projets consommateurs)
 3. **Validation patch par patch** (`apply` / `skip` / `edit` / `stop`)
 4. **Application** des patches retenus
 5. **Commit optionnel** du repo système si des patches `système` ont été appliqués
@@ -54,7 +54,7 @@ Le vaisseau-mère (versionné, partagé entre tous les projets) :
 ├── install.sh                            ← module d'embarquement
 ├── CLAUDE.md                             ← philosophie générique
 ├── templates/
-│   └── project-context.md.template       ← gabarit du registre de mission
+│   └── project-context.md.template       ← gabarit du registre projet
 └── .claude/
     ├── agents/
     │   ├── project-discoverer.md         ← scout : complète project-context.md
@@ -62,16 +62,17 @@ Le vaisseau-mère (versionné, partagé entre tous les projets) :
     │   ├── api-builder.md                ← ingénieur API (Node+TS multi-framework)
     │   ├── api-reviewer.md               ← inspecteur API (review via git diff)
     │   ├── ios-builder.md                ← ingénieur iOS (SwiftUI)
-    │   ├── ios-reviewer.md                ← inspecteur iOS (review via git diff + impact Android)
-    │   ├── android-builder.md             ← ingénieur Android (Compose, porte le code iOS)
-    │   ├── android-reviewer.md            ← inspecteur Android (review + audit parité iOS)
+    │   ├── ios-reviewer.md               ← inspecteur iOS (review + brief pour Android)
+    │   ├── android-builder.md            ← ingénieur Android (Compose, porte le code iOS)
+    │   ├── android-reviewer.md           ← inspecteur Android (review + audit parité delta)
+    │   ├── parity-auditor.md             ← auditeur parité (vue complète du domaine)
     │   └── system-retrospective.md       ← analyste : propose des améliorations
     └── skills/
         ├── feature/SKILL.md
         └── feature-retro/SKILL.md
 ```
 
-Chaque projet (chaque mission) dispose d'une passerelle de commande locale :
+Chaque projet dispose d'une passerelle de commande locale :
 
 ```
 <workspace>/
@@ -79,16 +80,16 @@ Chaque projet (chaque mission) dispose d'une passerelle de commande locale :
 └── .claude/
     ├── agents/                → symlink vers le vaisseau-mère
     ├── skills/                → symlink vers le vaisseau-mère
-    ├── project-context.md     ← local : registre de mission (stack, conventions)
-    └── feedback/              ← local : journaux de bord de la mission
+    ├── project-context.md     ← local : stack et conventions du projet
+    └── feedback/              ← local : journaux du projet
 ```
 
 ---
 
 ## 🚀 Embarquement sur un nouveau projet
 
-> **Modèle « workspace de commande ».**
-> Le dossier où vit la passerelle Claude est un module dédié à la config. Il **ne contient pas** les trois repos (iOS, Android, API) — il les **référence** via leurs chemins absolus déclarés dans `project-context.md`. Les repos restent à leur orbite habituelle.
+> **Modèle « workspace de config »**
+> Le dossier où vit la passerelle Claude est un module dédié à la config. Il **ne contient pas** les trois repos (iOS, Android, API) — il les **référence** via leurs chemins absolus, déclarés dans `project-context.md`. Les repos restent à leur emplacement habituel sur le disque.
 
 ### Étape 1 — Préparer la passerelle
 
@@ -99,20 +100,20 @@ mkdir -p ~/Claude/MyApp
 cd ~/Claude/MyApp
 ```
 
-Le nom du dossier est libre (`~/Claude/<nom>`, `~/workspaces/<nom>`, etc.). C'est le **cwd** depuis lequel Claude Code sera lancé.
+Le nom du dossier est libre. C'est le **cwd** depuis lequel Claude Code sera lancé.
 
-### Étape 2 — Embarquer l'équipage
+### Étape 2 — Embarquer les agents
 
 ```bash
 bash ~/work/claude-mobile-agents/install.sh
 ```
 
-Le module d'embarquement effectue :
+Le script :
 
-1. Sauvegarde des éventuels `CLAUDE.md` / `.claude/agents` / `.claude/skills` existants (suffixe `.backup.YYYYMMDD-HHMMSS`)
-2. Pose des symlinks vers le vaisseau-mère
-3. Création de `.claude/feedback/` local
-4. Copie du template `project-context.md.template` vers `.claude/project-context.md`
+1. Sauvegarde les éventuels `CLAUDE.md` / `.claude/agents` / `.claude/skills` existants (suffixe `.backup.YYYYMMDD-HHMMSS`)
+2. Pose les symlinks vers le vaisseau-mère
+3. Crée `.claude/feedback/` local
+4. Copie le template `project-context.md.template` dans `.claude/project-context.md`
 5. Saisie interactive des coordonnées des trois repos (chemins absolus, validés à la volée)
 
 ### Étape 3 — Déclarer les coordonnées des repos
@@ -135,15 +136,15 @@ Règles de saisie :
 
 - **Chemins absolus uniquement** (commencent par `/`). Le `~` est étendu automatiquement.
 - Chaque dossier doit exister et contenir son propre `.git/` (avertissement non bloquant sinon).
-- **Enter vide** = composant absent (ex. mission backend-only) → placeholder conservé.
+- **Enter vide** = composant absent (ex. backend-only) → placeholder conservé.
 - Modification possible plus tard en éditant `.claude/project-context.md` à la main.
 
-### Étape 4 — Première mission
+### Étape 4 — Première feature
 
 ```bash
 cd ~/Claude/MyApp       # la passerelle, pas un repo de code
 # (lancer Claude Code ici — terminal, app desktop, ou web)
-/feature "première mission"
+/feature "première feature"
 ```
 
 Au premier passage, `project-discoverer` lit les trois chemins, scanne les dossiers pour extraire la stack (framework API, design system iOS, etc.) et complète `project-context.md`. Le développeur valide en 2 min, le workflow normal s'enchaîne.
@@ -159,13 +160,13 @@ Pour une structure existante du type :
 └── MyAppAndroid/
 ```
 
-`~/Code/MyApp/` peut servir directement de passerelle (lancer `install.sh` dedans). Les chemins absolus pointeront vers ses sous-dossiers (`/Users/.../Code/MyApp/MyAppAPI`, etc.).
+`~/Code/MyApp/` peut servir directement de passerelle (lancer `install.sh` dedans). Les chemins absolus pointeront vers ses sous-dossiers.
 
 ---
 
-## 🛡️ Juridictions (périmètres d'écriture)
+## 🛡️ Périmètres d'écriture
 
-Chaque membre d'équipage opère dans un périmètre verrouillé.
+Chaque agent opère dans un périmètre verrouillé.
 
 | Agent | Périmètre d'écriture |
 |---|---|
@@ -177,6 +178,7 @@ Chaque membre d'équipage opère dans un périmètre verrouillé.
 | `ios-reviewer` | rien (read-only) |
 | `android-builder` | `<android-dir>/` |
 | `android-reviewer` | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
+| `parity-auditor` | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/` pour auditer le domaine |
 | `system-retrospective` | rien (propose des diffs, `/feature-retro` applique) |
 
 **Aucun agent ne commit automatiquement.** Tout commit est proposé au développeur, jamais imposé.
@@ -185,19 +187,19 @@ Chaque membre d'équipage opère dans un périmètre verrouillé.
 
 ## 🧠 Boucle d'apprentissage
 
-L'équipage devient meilleur à chaque mission — c'est conçu pour ça.
+Le système devient meilleur à chaque feature.
 
 1. Chaque `/feature` se termine par un journal de bord obligatoire (5 notes + 2 retours libres)
 2. Le journal est archivé dans `.claude/feedback/<date>-<slug>.md`
 3. Quand 3 journaux ou plus s'accumulent, le déclenchement de `/feature-retro` devient pertinent
 4. Les patterns récurrents (signal présent au moins deux fois) déclenchent des patches :
-   - **Projet** : durcissent `.claude/project-context.md` de la mission courante
-   - **Système** : améliorent l'équipage pour toutes les missions futures (confirmation supplémentaire requise)
+   - **Projet** : durcissent `.claude/project-context.md` du projet courant
+   - **Système** : améliorent les agents pour tous les projets futurs (confirmation supplémentaire requise)
 5. Patches validés un par un → appliqués → commit optionnel du vaisseau-mère
 
 ---
 
-## 🔄 Maintenance du vaisseau
+## 🔄 Maintenance du système
 
 Le vaisseau-mère est versionné. Pour intégrer les améliorations partagées :
 
@@ -206,7 +208,7 @@ cd ~/work/claude-mobile-agents
 git pull
 ```
 
-Toutes les missions qui pointent vers ce vaisseau via leurs symlinks reçoivent instantanément la nouvelle version. Aucune action requise côté projet.
+Tous les projets dont les symlinks pointent vers ce vaisseau reçoivent instantanément la nouvelle version. Aucune action requise côté projet.
 
 ---
 
@@ -220,28 +222,27 @@ Toutes les missions qui pointent vers ce vaisseau via leurs symlinks reçoivent 
 
 ---
 
-## État de la flotte — V2
+## ✅ État — V2
 
-✅ **Tous les scopes opérationnels** :
+Tous les scopes opérationnels :
 
-- **`api`** — reconnaissance, planificateur, ingénieur API, inspecteur API
-- **`mobile`** — ingénieur iOS (SwiftUI), inspecteur iOS, ingénieur Android (Compose, porte le code iOS), inspecteur Android (audite la parité)
-- **`api+mobile`** — séquence complète : API puis mobile (iOS d'abord, Android ensuite)
-- Journal de bord obligatoire à chaque mission, rétrospective via `/feature-retro`
+- **`api`** — discovery, planificateur, builder API, reviewer API
+- **`mobile`** — builder iOS (SwiftUI), reviewer iOS, builder Android (Compose, porte le code iOS), reviewer Android (audit parité delta), parity-auditor (audit parité complète du domaine)
+- **`api+mobile`** — séquence complète : API puis mobile (iOS d'abord, Android ensuite, audit parité)
+- Journal de bord obligatoire à chaque feature, rétrospective via `/feature-retro`
 
-Le workflow mobile est **séquentiel** : iOS implémenté en premier, son code sert de spec implicite à Android. `android-reviewer` audite explicitement la parité (noms d'écrans, composants DS, méthodes VM, DTOs, cases de navigation).
+Le workflow mobile est **séquentiel** : iOS implémenté en premier, son code sert de spec implicite à Android. `android-reviewer` audite la parité du delta, `parity-auditor` audite la parité complète du domaine fonctionnel (incluant les divergences héritées accumulées).
 
 ---
 
-## Roadmap V3 (idées)
+## 🛰️ Roadmap (idées)
 
-- Agent `parity-auditor` autonome pour les missions de refonte transverse (compare iOS et Android indépendamment du dernier diff)
-- Mode `--manual ios` pour skipper `ios-builder` quand le développeur préfère écrire SwiftUI à la main
-- Génération automatique de DTOs partagés via OpenAPI (réduire la duplication TS / Swift / Kotlin)
+- Génération automatique de DTOs partagés via OpenAPI pour réduire la duplication TS / Swift / Kotlin
 - Snapshot tests automatiques sur les composants du design system maison
+- Mode `--watch` pour `/feature-retro` qui surveille l'accumulation de divergences héritées dans plusieurs domaines et propose des features de remise à niveau
 
 ---
 
-## Licence
+## 📜 Licence
 
-Privé — usage personnel. *Ad astra.*
+Privé — usage personnel.
