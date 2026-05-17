@@ -1,0 +1,224 @@
+# Project context — <PROJECT_NAME>
+
+> Ce fichier est généré par l'agent `project-discoverer` au premier `/feature` puis maintenu par les agents.
+> Il décrit la stack et les conventions **spécifiques à ce projet**. La philosophie générique est dans `CLAUDE.md` (symlink).
+> Tu peux corriger / compléter ce fichier à la main à tout moment. Les agents le relisent à chaque feature.
+
+---
+
+## Identité
+
+- **Nom du projet** : <PROJECT_NAME>
+- **Type** : application mobile native (iOS + Android) avec API Node/TS
+- **Date de génération** : <YYYY-MM-DD>
+- **Dernière mise à jour automatique** : <YYYY-MM-DD>
+
+---
+
+## Arborescence
+
+```
+<ROOT_PATH>/
+├── <API_DIR>/         ← repo git API
+├── <IOS_DIR>/         ← repo git iOS
+├── <ANDROID_DIR>/     ← repo git Android
+└── (autres dossiers : specs, doc, marketing, etc.)
+```
+
+| Composant | Chemin relatif | Repo git ? |
+|---|---|---|
+| API | `<API_DIR>` | oui/non |
+| iOS | `<IOS_DIR>` | oui/non |
+| Android | `<ANDROID_DIR>` | oui/non |
+
+---
+
+## API — stack & conventions
+
+### Stack
+
+- **Runtime** : Node.js `<version>`
+- **Langage** : TypeScript `<strict / loose>`
+- **Framework HTTP** : `<Express 5 | Fastify 5 | NestJS>`
+- **Base de données** : `<MongoDB | PostgreSQL | Supabase | autre>` + driver/ORM `<mongoose | prisma | @supabase/supabase-js | typeorm | knex | autre>`
+- **Auth** : JWT Bearer (détails : `<provider, refresh, etc.>`)
+- **Validation** : `<Zod | Joi | manuelle | class-validator | autre>`
+- **Logger** : `<pino | winston | console | autre>`
+- **Sécurité** : `<helmet | cors | rate-limit | autre>`
+- **Push notifications** : `<OneSignal | Firebase | autre | aucun>`
+- **Préfixe d'URL API** : `<ex. /api/v1, /api/v2, ou aucun>`
+
+### Arborescence backend
+
+```
+<API_DIR>/src/
+├── <bootstrap>         (ex. index.ts, server.ts, app.ts)
+├── <plugins-dir>/      (ex. plugins/, middleware/)
+├── <routes-dir>/       (ex. routes/, controllers/)
+├── <types-dir>/        (ex. types/, models/, dto/)
+└── ...
+```
+
+### Conventions de routes
+
+- **Découpe** : `<un fichier par domaine | un fichier par ressource | autre>`
+- **Auth posée à** : `<niveau module | niveau route | autre>`
+- **Convention URL** : `<ex. /me/... pour client connecté, /admin/... pour admin>`
+- **Convention params** : `<ex. :camelCaseId | :snake_case_id>`
+- **Verbes HTTP** : `<GET lister/lire, POST créer, PUT upsert, PATCH partiel, DELETE supprimer>`
+
+### Format de réponse
+
+- **Succès** : `<{ data: ... } | { result: ... } | objet direct | autre>`
+- **Listes paginées** : `<{ data: [...], pagination } | autre>`
+- **Suppression** : `<204 No Content | { data: null } | autre>`
+- **Erreur** : `<{ error: { code, message } } | { message } | autre>`
+- **Codes d'erreur** : `<SCREAMING_SNAKE_CASE | kebab-case | autre>`
+
+### Validation
+
+- **Approche** : `<bibliothèque (Zod, Joi, class-validator…) | helpers maison | manuelle>`
+- **Helpers existants** : `<liste, ex. isValidLatitude, isValidEmail, ...>`
+- **Senders d'erreur** : `<liste, ex. sendBadRequest, sendNotFound, sendDbError, ...>`
+
+### Types & DTOs
+
+- **Convention de casing wire** : `<camelCase | snake_case | autre>`
+- **Convention de casing DB** : `<camelCase | snake_case | autre>`
+- **Mapping DB ↔ DTO** : `<centralisé dans <fichier> | par module | par ORM>`
+- **Suffixes DTO** : `<Dto, RequestDto, ResponseXxxDto, MiniDto, ListXxxDataDto | autre>`
+- **Types primitifs réutilisables** : `<UUID, ISODateString, Nullable<T> | autre>`
+- **Enums** : `<unions de string literals | enum TS | autre>`
+
+### Auth
+
+- **Decorators / middlewares** : `<ex. app.requireClientAuth, app.requireProAuth, requireAuth, ...>`
+- **Contexte injecté sur request** : `<ex. request.userId, request.clientId, request.proId, ...>`
+- **Types d'acteurs** : `<ex. client / pro / admin / guest>`
+
+### Helpers privés du backend
+
+Les fichiers helpers (ex. `_shared.ts`, `_mappers.ts`) à connaître avant d'inventer :
+
+- `<fichier>` : `<rôle court>`
+- ...
+
+### Migrations / schéma
+
+- **Outil** : `<knex | prisma | flyway | sql manuel | autre>`
+- **Localisation** : `<chemin/migrations/>`
+- **Snapshot de référence** : `<chemin/init.sql ou équivalent, si existe>`
+
+### Ce qu'il NE faut PAS faire (backend)
+
+- ... (rempli par discoverer ou ajouté par les retros)
+
+---
+
+## iOS — stack & conventions
+
+### Stack
+
+- **Framework UI** : `<SwiftUI | UIKit | mix>`
+- **Cible iOS** : `<iOS 16+ | iOS 17+ | autre>`
+- **Gestion d'état** : `<ObservableObject + @MainActor | The Composable Architecture | Combine | autre>`
+- **Pattern d'architecture** : `<god-store global | MVVM par écran | TCA | autre>`
+- **Navigation** : `<NavigationStack + enum | Coordinator | autre>`
+- **Réseau** : `<URLSession natif | Alamofire | autre>` via `<nom du manager>`
+- **Push** : `<OneSignal | APNS | autre>`
+
+### Arborescence iOS
+
+```
+<IOS_DIR>/
+├── <app-entry>        (ex. App.swift, MyAppApp.swift)
+├── <store-file>       (ex. AppStore.swift)
+├── Network/
+├── UI/
+│   ├── DesignSystem/  ← composants maison
+│   ├── ...
+└── ...
+```
+
+### Design system iOS
+
+- **Préfixe des composants** : `<ex. Arti, Sol, App>`
+- **Composants existants** : `<liste : ArtiPrimaryButton, ArtiCard, ArtiTheme, ...>`
+- **Thème** : `<fichier centralisant couleurs/spacing/radius/shadows>`
+
+### Conventions iOS
+
+- **Navigation par ID** : oui (règle absolue, voir CLAUDE.md générique)
+- **Structure des fichiers** : `<MARK: heavy | atomisation | autre>`
+- **Naming des écrans** : `<ex. ProInterventionsScreen, ClientProsScreen, ...>`
+- **DTOs réseau** : `<fichier centralisant les DTOs miroir backend>`
+
+### Ce qu'il NE faut PAS faire (iOS)
+
+- ...
+
+---
+
+## Android — stack & conventions
+
+### Stack
+
+- **Framework UI** : `<Jetpack Compose | Views XML | mix>`
+- **Min SDK** : `<24 | 26 | autre>`
+- **Gestion d'état** : `<ViewModel + StateFlow | LiveData | autre>`
+- **Pattern d'architecture** : `<god-VM | MVVM par écran | MVI | autre>`
+- **Navigation** : `<NavHost + enum | jetpack navigation | autre>`
+- **DI** : `<manuel (AppContainer) | Hilt | Koin | autre>`
+- **Réseau** : `<Retrofit + OkHttp | Ktor | autre>` via `<nom du service>`
+- **Push** : `<OneSignal | FCM | autre>`
+
+### Arborescence Android
+
+```
+<ANDROID_DIR>/app/src/main/java/<package-path>/
+├── <app-entry>         (ex. MainActivity.kt, MyAppApplication.kt)
+├── core/
+│   ├── di/
+│   ├── network/
+│   ├── ...
+├── ui/
+│   ├── theme/          (Material)
+│   ├── designsystem/   ← composants maison miroir iOS
+│   ├── navigation/
+│   ├── root/
+│   └── screens/
+└── ...
+```
+
+### Design system Android
+
+- **Préfixe des composants** : `<ex. Arti, Sol, App>` (doit matcher iOS)
+- **Composants existants** : `<liste, en miroir du DS iOS>`
+- **Thème** : `<fichier centralisant>`
+
+### Conventions Android
+
+- **Navigation par ID** : oui (règle absolue)
+- **Parité avec iOS** : maintenue manuellement, mêmes noms d'écrans et de composants
+- **DTOs réseau** : `<fichier centralisant les DTOs miroir backend>`
+
+### Ce qu'il NE faut PAS faire (Android)
+
+- ...
+
+---
+
+## Specs métier & ressources
+
+Liste des fichiers de spec utiles aux agents :
+
+- `<chemin>` : `<rôle court>`
+- ...
+
+---
+
+## Historique des évolutions
+
+Les agents notent ici les changements significatifs détectés (nouvelle dépendance, nouveau pattern adopté, etc.).
+
+- `<YYYY-MM-DD>` — `<résumé>` (source : `<discovery | retro | manuel>`)
