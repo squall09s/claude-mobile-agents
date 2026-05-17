@@ -23,16 +23,26 @@ Les **conventions précises** de chaque projet (nommage du design system, codes 
 
 ## Invariants de tout projet conforme
 
-### Trois sous-projets, chacun son repo git
+### Trois sous-projets, chacun son repo git, vivant n'importe où sur le disque
+
+Le **workspace** Claude Code (où vit `CLAUDE.md`, `.claude/agents` symlink, `.claude/skills` symlink, `.claude/project-context.md`, `.claude/feedback/`) est **un dossier de config dédié**. Il **ne contient pas** les repos de code — il les **référence** via leurs chemins absolus, déclarés dans la section `## ⚠️ Chemins` de `project-context.md`.
 
 ```
-<projet>/
-├── <api-dir>/         (repo git, ex. server/, api/, backend/, MyApiName/)
-├── <ios-dir>/         (repo git, ex. ios-app/, iOS/, MyAppName-iOS/)
-└── <android-dir>/     (repo git, ex. android-app/, MyAppName-Android/)
+<workspace>/                       ← dossier de config (point d'ancrage Claude Code)
+├── CLAUDE.md                       (symlink vers le système)
+└── .claude/
+    ├── agents, skills              (symlinks vers le système)
+    ├── project-context.md          (déclare api-dir, ios-dir, android-dir en absolu)
+    └── feedback/                   (journaux locaux)
+
+/n/importe/où/sur/disque/api/      ← repo git API (chemin absolu déclaré)
+/ailleurs/encore/ios/              ← repo git iOS
+/dans/un/autre/coin/android/       ← repo git Android
 ```
 
-Les chemins exacts sont **détectés** par `project-discoverer` et stockés dans `project-context.md`. Les agents utilisent toujours `git -C <dir>` pour ne pas changer le cwd.
+Les chemins sont **renseignés à la main par le dev** dans `project-context.md` à l'installation. Le `project-discoverer` les **utilise** (ne les invente pas) pour scanner les sous-projets et compléter les autres champs.
+
+Les agents utilisent toujours `git -C <chemin-absolu>` pour interroger un repo sans changer le cwd.
 
 ### Parité iOS ↔ Android
 

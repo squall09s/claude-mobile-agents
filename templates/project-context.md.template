@@ -1,8 +1,32 @@
 # Project context — <PROJECT_NAME>
 
-> Ce fichier est généré par l'agent `project-discoverer` au premier `/feature` puis maintenu par les agents.
-> Il décrit la stack et les conventions **spécifiques à ce projet**. La philosophie générique est dans `CLAUDE.md` (symlink).
-> Tu peux corriger / compléter ce fichier à la main à tout moment. Les agents le relisent à chaque feature.
+> Ce fichier est **partiellement à remplir à la main** par toi (la section `Chemins` ci-dessous),
+> puis **complété automatiquement** par l'agent `project-discoverer` au premier `/feature`.
+> La philosophie générique est dans `CLAUDE.md` (symlink). Tu peux corriger / compléter ce fichier
+> à tout moment. Les agents le relisent à chaque feature.
+
+---
+
+## ⚠️ Chemins (À REMPLIR À LA MAIN AVANT LE PREMIER `/feature`)
+
+Cette section est **obligatoire** et bloque le premier `/feature`. Le workspace Claude (le dossier
+où vit `CLAUDE.md` et `.claude/`) sert uniquement de **point d'ancrage de config**. Les 3 repos
+réels (API, iOS, Android) peuvent vivre n'importe où sur le disque — tu les déclares ici en
+**chemins absolus**.
+
+```yaml
+api-dir: /chemin/absolu/vers/repo-api          # ex. /Users/nico/Code/MyApp-API
+ios-dir: /chemin/absolu/vers/repo-ios          # ex. /Users/nico/Sources/MyApp-iOS
+android-dir: /chemin/absolu/vers/repo-android  # ex. /Users/nico/Dev/MyApp-Android
+```
+
+**Règles** :
+- **Chemins absolus uniquement** (commencent par `/`). Pas de `./`, pas de `~/`.
+- Chaque dossier doit exister et **contenir son propre `.git/`** (vérifiable par `ls <chemin>/.git`).
+- Si un sous-projet n'existe pas (ex. projet backend-only sans mobile), laisse le chemin vide ;
+  le scope `mobile` / `api+mobile` sera refusé tant que ce chemin n'est pas renseigné.
+- Si tu déplaces un repo plus tard, mets à jour ce fichier (les agents lisent les chemins à chaque
+  feature, ils suivront).
 
 ---
 
@@ -15,21 +39,15 @@
 
 ---
 
-## Arborescence
+## Arborescence des repos
 
-```
-<ROOT_PATH>/
-├── <API_DIR>/         ← repo git API
-├── <IOS_DIR>/         ← repo git iOS
-├── <ANDROID_DIR>/     ← repo git Android
-└── (autres dossiers : specs, doc, marketing, etc.)
-```
+(Renseignée automatiquement par `project-discoverer` à partir des chemins déclarés ci-dessus.)
 
-| Composant | Chemin relatif | Repo git ? |
+| Composant | Chemin absolu | Repo git ? |
 |---|---|---|
-| API | `<API_DIR>` | oui/non |
-| iOS | `<IOS_DIR>` | oui/non |
-| Android | `<ANDROID_DIR>` | oui/non |
+| API | `<api-dir>` | oui/non |
+| iOS | `<ios-dir>` | oui/non |
+| Android | `<android-dir>` | oui/non |
 
 ---
 

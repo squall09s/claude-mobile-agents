@@ -83,14 +83,14 @@ if [[ ! -f "$PROJECT_ROOT/.claude/feedback/.gitkeep" ]]; then
   touch "$PROJECT_ROOT/.claude/feedback/.gitkeep"
 fi
 
-# ---------- Détection projet-context ----------
+# ---------- Copie du project-context.md depuis le template ----------
 echo ""
 if [[ -f "$PROJECT_ROOT/.claude/project-context.md" ]]; then
-  echo "ℹ️  .claude/project-context.md existe déjà — pas de regénération automatique."
-  echo "   Si tu veux une re-discovery, supprime-le ou édite-le à la main."
+  echo "ℹ️  .claude/project-context.md existe déjà — pas de réécriture."
+  echo "   Vérifie que la section 'Chemins' contient bien tes 3 chemins absolus."
 else
-  echo "ℹ️  .claude/project-context.md n'existe pas — il sera généré automatiquement"
-  echo "   par l'agent project-discoverer au premier /feature."
+  cp "$SYSTEM_REPO/templates/project-context.md.template" "$PROJECT_ROOT/.claude/project-context.md"
+  echo "✅ .claude/project-context.md créé depuis le template"
 fi
 
 # ---------- Vérifications finales ----------
@@ -106,14 +106,34 @@ for f in "$PROJECT_ROOT/CLAUDE.md" "$PROJECT_ROOT/.claude/agents" "$PROJECT_ROOT
 done
 
 echo ""
-echo "🎉 Installation terminée."
+echo "🎉 Installation des fichiers de config terminée."
 echo ""
-echo "Prochaines étapes :"
-echo "  1. Ouvre Claude Code à la racine du projet ($PROJECT_ROOT)"
-echo "  2. Lance \`/feature <description de ta première feature>\`"
-echo "  3. Au premier lancement, project-discoverer va scanner le projet"
-echo "     et générer .claude/project-context.md (à valider en 2 min)"
-echo "  4. Le workflow normal s'enchaîne ensuite (plan → gate → build → review → feedback)"
+echo "════════════════════════════════════════════════════════════════════════════"
+echo "⚠️  ÉTAPE OBLIGATOIRE AVANT DE LANCER /feature"
+echo "════════════════════════════════════════════════════════════════════════════"
+echo ""
+echo "Ouvre maintenant ce fichier dans ton éditeur :"
+echo ""
+echo "   $PROJECT_ROOT/.claude/project-context.md"
+echo ""
+echo "Et renseigne la section 'Chemins' avec les chemins ABSOLUS de tes 3 repos :"
+echo ""
+echo "   api-dir: /chemin/absolu/vers/ton/repo-api"
+echo "   ios-dir: /chemin/absolu/vers/ton/repo-ios"
+echo "   android-dir: /chemin/absolu/vers/ton/repo-android"
+echo ""
+echo "Ces 3 repos peuvent vivre n'importe où sur ton disque — le dossier courant"
+echo "($PROJECT_ROOT) sert uniquement de point d'ancrage pour la config Claude."
+echo ""
+echo "════════════════════════════════════════════════════════════════════════════"
+echo ""
+echo "Une fois project-context.md complété, dans Claude Code à la racine de :"
+echo "  $PROJECT_ROOT"
+echo "Lance :"
+echo "  /feature <description de ta première feature>"
+echo ""
+echo "Le workflow : project-discoverer (auto-complète project-context.md) → planner"
+echo "→ gate humaine → build → review → feedback obligatoire."
 echo ""
 echo "Système versionné dans : $SYSTEM_REPO"
 echo "Pour mettre à jour le système : cd $SYSTEM_REPO && git pull"

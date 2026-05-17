@@ -78,25 +78,72 @@ Dans chaque projet consommateur :
 
 ## Installation sur un nouveau projet
 
+> ⚠️ **Important — modèle « workspace de config »**
+> Le dossier où tu lances `install.sh` est un **workspace de config** dédié à Claude. Il **ne contient pas** tes 3 repos (iOS, Android, API) — il les **référence** via leurs chemins absolus, que tu déclares manuellement dans `project-context.md` à la fin de l'install. Tes repos restent à leur place sur le disque, où qu'elle soit.
+
+### Étape 1 — Crée ton workspace de config
+
+Choisis un emplacement pour les fichiers de config Claude. Recommandation : un dossier dédié par projet, séparé de tes repos de code :
+
 ```bash
-cd /chemin/vers/mon/projet
+mkdir -p ~/Claude/MyApp
+cd ~/Claude/MyApp
+```
+
+Tu peux nommer ce dossier comme tu veux (`~/Claude/<nom-projet>`, `~/workspaces/<nom>`, peu importe). Il sera le **cwd** où tu lanceras Claude Code.
+
+### Étape 2 — Lance `install.sh`
+
+```bash
 bash ~/work/claude-mobile-agents/install.sh
 ```
 
 Le script :
 
-1. Sauvegarde les éventuels `CLAUDE.md` / `.claude/agents/` / `.claude/skills/` existants (suffixe `.backup.YYYYMMDD-HHMMSS`)
-2. Pose les symlinks
-3. Crée `.claude/feedback/` local si absent
-4. Affiche les prochaines étapes
+1. Sauvegarde les éventuels `CLAUDE.md` / `.claude/agents` / `.claude/skills` existants (suffixe `.backup.YYYYMMDD-HHMMSS`)
+2. Pose les symlinks vers le système (`CLAUDE.md`, `.claude/agents`, `.claude/skills`)
+3. Crée `.claude/feedback/` local
+4. **Copie le template `project-context.md.template` dans `.claude/project-context.md`** — fichier réel à compléter
 
-Puis, à la racine du projet, lance Claude Code et :
+### Étape 3 — Déclare tes chemins absolus (OBLIGATOIRE)
 
+Ouvre `.claude/project-context.md` dans ton éditeur et complète la section `## ⚠️ Chemins` :
+
+```yaml
+api-dir: /chemin/absolu/vers/repo-api          # ex. /Users/nico/Code/MyApp-API
+ios-dir: /chemin/absolu/vers/repo-ios          # ex. /Users/nico/Sources/MyApp-iOS
+android-dir: /chemin/absolu/vers/repo-android  # ex. /Users/nico/Dev/MyApp-Android
 ```
+
+**Règles** :
+- **Chemins absolus uniquement** (commencent par `/`). Pas de `./`, pas de `~/`.
+- Chaque dossier doit exister et **contenir son propre `.git/`**.
+- Si un sous-projet n'existe pas (projet backend-only par ex.), laisse le chemin vide ; les scopes `mobile` / `api+mobile` seront refusés tant que ce chemin reste vide.
+
+Sans cette étape, le premier `/feature` s'arrêtera en te demandant de la faire.
+
+### Étape 4 — Lance Claude Code et ta première feature
+
+```bash
+cd ~/Claude/MyApp       # le workspace, pas un de tes repos
+# (lance Claude Code ici, terminal ou app)
 /feature "ma première feature"
 ```
 
-Au premier lancement, `project-discoverer` scanne le projet et génère `.claude/project-context.md`. Tu le valides en 2 min, puis le workflow normal démarre.
+Au premier lancement, `project-discoverer` lit tes 3 chemins, va scanner ces dossiers pour extraire la stack (framework API, DS iOS, etc.) et complète `project-context.md`. Tu valides en 2 min, puis le workflow normal démarre (planner → gate → builder → reviewer → feedback).
+
+### Si tes 3 repos sont déjà sous un dossier commun
+
+Si tu as déjà une structure du genre :
+
+```
+~/Code/MyApp/
+├── MyAppAPI/
+├── MyAppIOS/
+└── MyAppAndroid/
+```
+
+Tu peux faire de `~/Code/MyApp/` lui-même le workspace de config (lance `install.sh` dedans). Tu déclareras alors les chemins absolus pointant vers ses sous-dossiers (`/Users/.../Code/MyApp/MyAppAPI`, etc.). Pas besoin d'un dossier séparé.
 
 ## Périmètres d'écriture (sécurité)
 
