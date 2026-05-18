@@ -128,9 +128,15 @@ Le planner **vérifie le contrat API existant** quand il évalue une feature `mo
    │   .claude/project-context.md (helpers réutilisables, composants DS,
    │   patterns d'archi confirmés — conservateur). Patches validés un par un.
    │   Backup auto dans .claude/.context-backup/ avant la première application.
-   │   Annulable via /feature-rollback.
    │
-   └─ Étape 6 : CAPTURE FEEDBACK OBLIGATOIRE
+   ├─ Étape 6 : business-keeper
+   │   Analyse les diffs + le plan + la description et propose des patches
+   │   ciblés sur .claude/business-context.md (registre de la feature livrée
+   │   — systématique, nouveaux écrans, nouvelles entités, flows, vocabulaire,
+   │   états). Patches validés un par un. Backup auto dans .claude/.business-backup/.
+   │   Maintient la vue produit à jour. Annulable via /feature-rollback.
+   │
+   └─ Étape 7 : CAPTURE FEEDBACK OBLIGATOIRE
         Format : 5 notes 1-5 + 2 textes libres + stats git
         Journal écrit dans .claude/feedback/YYYY-MM-DD-<slug>.md
 ```
@@ -255,7 +261,8 @@ Chaque agent a un périmètre limité :
 | android-reviewer | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
 | parity-auditor | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/`, audite l'ensemble du domaine touché |
 | ds-guardian | rien (read-only) — audite l'usage et la santé du design system (modes scoped et full) |
-| context-keeper | rien (read-only, propose des patches sur `.claude/project-context.md`) |
+| context-keeper | rien (read-only, propose des patches sur `.claude/project-context.md`) — contexte TECHNIQUE |
+| business-keeper | rien (read-only, propose des patches sur `.claude/business-context.md`) — contexte MÉTIER (vue produit) |
 | system-retrospective | rien (read-only, propose des diffs) |
 
 Tout agent qui tenterait d'écrire hors de son périmètre doit refuser et signaler.

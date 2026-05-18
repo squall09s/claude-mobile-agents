@@ -29,8 +29,9 @@ Implémente une feature de bout en bout :
    - `api+mobile` → API d'abord, puis la séquence mobile complète
 5. **Synthèse** au développeur (fichiers touchés, tests, verdict review, audit parité)
 6. **Proposition de commit** par sous-projet — jamais automatique
-7. **Mise à jour du contexte projet** par `context-keeper` : propose jusqu'à 5 patches ciblés sur `.claude/project-context.md` (helpers réutilisables, composants DS, patterns d'archi confirmés). Patches validés un par un. Backup automatique avant application.
-8. **Journal de bord obligatoire** : 5 notes + 2 retours libres, archivé dans `.claude/feedback/`
+7. **Mise à jour du contexte TECHNIQUE** par `context-keeper` : propose jusqu'à 5 patches ciblés sur `.claude/project-context.md` (helpers réutilisables, composants DS, patterns d'archi confirmés). Patches validés un par un. Backup automatique avant application.
+8. **Mise à jour du contexte MÉTIER** par `business-keeper` : propose des patches ciblés sur `.claude/business-context.md` (registre de la feature livrée — systématique, nouveaux écrans, nouvelles entités, flows, vocabulaire, états). Patches validés un par un. Backup automatique.
+9. **Journal de bord obligatoire** : 5 notes + 2 retours libres, archivé dans `.claude/feedback/`
 
 ### `/feature-retro`
 
@@ -48,9 +49,10 @@ Améliore le système à partir des journaux accumulés. À partir de 3 journaux
 Annule les traces de la dernière `/feature` lorsqu'elle s'est mal passée :
 
 1. **Restaure** `.claude/project-context.md` depuis le dernier backup créé par `context-keeper`
-2. **Archive** le dernier journal de feedback en `.rolled-back.md` (ignoré par `/feature-retro`)
-3. **Ne touche pas aux commits git** des trois repos (à gérer à la main via `git reset` si nécessaire)
-4. Confirmation explicite avant chaque étape — granularité possible (`ok` / `contexte seul` / `journal seul` / `stop`)
+2. **Restaure** `.claude/business-context.md` depuis le dernier backup créé par `business-keeper`
+3. **Archive** le dernier journal de feedback en `.rolled-back.md` (ignoré par `/feature-retro`)
+4. **Ne touche pas aux commits git** des trois repos (à gérer à la main via `git reset` si nécessaire)
+5. Confirmation explicite avant chaque étape — granularité possible (`ok` / `contexte technique seul` / `contexte métier seul` / `contextes seuls` / `journal seul` / `stop`)
 
 ### `/ds-audit`
 
@@ -88,7 +90,8 @@ Le repo système (versionné, partagé entre tous les projets) :
     │   ├── android-reviewer.md           ← inspecteur Android (review + audit parité delta)
     │   ├── parity-auditor.md             ← auditeur parité (vue complète du domaine)
     │   ├── ds-guardian.md                ← gardien du design system (bypass, doublons, cohérence)
-    │   ├── context-keeper.md             ← gardien du project-context.md (lutte contre l'obsolescence)
+    │   ├── context-keeper.md             ← gardien du contexte TECHNIQUE (project-context.md)
+    │   ├── business-keeper.md            ← gardien du contexte MÉTIER (business-context.md)
     │   └── system-retrospective.md       ← analyste : propose des améliorations
     └── skills/
         ├── feature/SKILL.md
@@ -105,8 +108,10 @@ Chaque projet dispose d'une workspace de commande locale :
 └── .claude/
     ├── agents/                → symlink vers le repo système
     ├── skills/                → symlink vers le repo système
-    ├── project-context.md     ← local : stack et conventions du projet
-    ├── .context-backup/        ← local : backups avant modifs context-keeper (pour /feature-rollback)
+    ├── project-context.md     ← local : stack et conventions TECHNIQUES du projet
+    ├── business-context.md    ← local : vue produit (rôles, vocabulaire, entités, flows, écrans, registre)
+    ├── .context-backup/        ← local : backups avant modifs context-keeper
+    ├── .business-backup/       ← local : backups avant modifs business-keeper
     └── feedback/              ← local : journaux du projet
 ```
 
@@ -206,7 +211,8 @@ Chaque agent opère dans un périmètre verrouillé.
 | `android-reviewer` | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
 | `parity-auditor` | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/` pour auditer le domaine |
 | `ds-guardian` | rien (read-only) — audite le design system (modes scoped et full) |
-| `context-keeper` | rien (read-only) — propose des patches sur `.claude/project-context.md`, le skill `/feature` applique après validation |
+| `context-keeper` | rien (read-only) — propose des patches sur `.claude/project-context.md` (contexte technique), le skill `/feature` applique après validation |
+| `business-keeper` | rien (read-only) — propose des patches sur `.claude/business-context.md` (contexte métier / vue produit), le skill `/feature` applique après validation |
 | `system-retrospective` | rien (propose des diffs, `/feature-retro` applique) |
 
 **Aucun agent ne commit automatiquement.** Tout commit est proposé au développeur, jamais imposé.
@@ -215,13 +221,17 @@ Chaque agent opère dans un périmètre verrouillé.
 
 ## 🧠 Boucle d'apprentissage
 
-Le système devient meilleur à chaque feature, sur deux axes :
+Le système devient meilleur à chaque feature, sur trois axes :
 
-**Axe 1 — Mise à jour continue du contexte** (à chaque `/feature`)
+**Axe 1 — Contexte technique à jour** (à chaque `/feature`, via `context-keeper`)
 
-À la fin de chaque feature, `context-keeper` analyse les diffs et propose jusqu'à 5 patches conservateurs sur `.claude/project-context.md` (helpers réutilisables, nouveaux composants DS, patterns d'archi confirmés). Patches validés un par un, avec backup automatique avant application. Lutte directe contre l'obsolescence du contexte projet.
+Analyse les diffs et propose jusqu'à 5 patches conservateurs sur `.claude/project-context.md` (helpers réutilisables, nouveaux composants DS, patterns d'archi confirmés). Lutte directe contre l'obsolescence du contexte technique.
 
-**Axe 2 — Évolution du système** (via `/feature-retro`, occasionnellement)
+**Axe 2 — Contexte métier à jour** (à chaque `/feature`, via `business-keeper`)
+
+Analyse les diffs + le plan + la description pour proposer des patches sur `.claude/business-context.md` : entrée systématique dans le registre des features livrées, nouveaux écrans détectés, nouvelles entités, nouveaux flows, vocabulaire, transitions d'états. Maintient la vue produit synthétique à jour pour que les agents comprennent **où** s'insère chaque nouvelle feature.
+
+**Axe 3 — Évolution du système** (via `/feature-retro`, occasionnellement)
 
 1. Chaque `/feature` se termine par un journal de bord obligatoire (5 notes + 2 retours libres)
 2. Le journal est archivé dans `.claude/feedback/<date>-<slug>.md`
@@ -250,7 +260,8 @@ Tous les scopes opérationnels :
 - **`api`** — discovery, planificateur, builder API, reviewer API
 - **`mobile`** — builder iOS (SwiftUI), reviewer iOS, builder Android (Compose, porte le code iOS), reviewer Android (audit parité delta), parity-auditor (audit parité complète du domaine), ds-guardian scoped (vérifie le respect fin du design system sur les fichiers touchés)
 - **`api+mobile`** — séquence complète : API puis mobile (iOS d'abord, Android ensuite, audit parité, audit DS)
-- **context-keeper** à la fin de chaque feature pour maintenir `.claude/project-context.md` à jour
+- **context-keeper** à la fin de chaque feature pour maintenir `.claude/project-context.md` (technique) à jour
+- **business-keeper** à la fin de chaque feature pour maintenir `.claude/business-context.md` (vue produit) à jour
 - **/ds-audit** standalone pour un audit complet du design system du projet
 - **/feature-rollback** pour annuler les traces de la dernière feature en cas de problème
 - Journal de bord obligatoire à chaque feature, rétrospective via `/feature-retro`

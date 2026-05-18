@@ -83,8 +83,9 @@ if [[ ! -f "$PROJECT_ROOT/.claude/feedback/.gitkeep" ]]; then
   touch "$PROJECT_ROOT/.claude/feedback/.gitkeep"
 fi
 
-# ---------- Préparation du project-context.md ----------
+# ---------- Préparation des fichiers de contexte ----------
 CONTEXT_FILE="$PROJECT_ROOT/.claude/project-context.md"
+BUSINESS_FILE="$PROJECT_ROOT/.claude/business-context.md"
 
 echo ""
 if [[ -f "$CONTEXT_FILE" ]]; then
@@ -93,8 +94,15 @@ if [[ -f "$CONTEXT_FILE" ]]; then
   SKIP_PATH_PROMPTS=1
 else
   cp "$SYSTEM_REPO/templates/project-context.md.template" "$CONTEXT_FILE"
-  echo "✅ .claude/project-context.md créé depuis le template"
+  echo "✅ .claude/project-context.md créé depuis le template (contexte technique)"
   SKIP_PATH_PROMPTS=0
+fi
+
+if [[ -f "$BUSINESS_FILE" ]]; then
+  echo "ℹ️  .claude/business-context.md existe déjà — pas de réécriture."
+else
+  cp "$SYSTEM_REPO/templates/business-context.md.template" "$BUSINESS_FILE"
+  echo "✅ .claude/business-context.md créé depuis le template (contexte métier)"
 fi
 
 # ---------- Saisie interactive des chemins absolus ----------

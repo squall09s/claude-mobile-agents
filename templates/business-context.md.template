@@ -1,0 +1,145 @@
+# Contexte métier — <PROJECT_NAME>
+
+> Ce fichier est généré au bootstrap par `project-discoverer` à partir des fichiers de spec
+> présents dans le workspace et de l'exploration des écrans iOS/Android. Il est ensuite
+> maintenu par `business-keeper` à chaque `/feature`.
+>
+> Il capture la **vue produit synthétique** de ce qui est livré (pas ce qui est prévu).
+> Les agents le lisent pour comprendre **où s'insère** une feature dans le produit.
+>
+> Tu peux corriger / compléter ce fichier à la main à tout moment.
+
+---
+
+## Domaine et vision
+
+`<À CONFIRMER : 2-3 phrases qui résument ce que fait l'app et pour qui>`
+
+Exemple : « Plateforme de mise en relation entre artisans et particuliers / clients pros pour des projets de travaux. L'app permet au client de découvrir des artisans, d'initier une mise en contact, de discuter du projet, de signer un devis, et de suivre l'intervention jusqu'à la review post-réalisation. »
+
+---
+
+## Rôles utilisateurs
+
+`<À COMPLÉTER par discoverer en lisant les decorators d'auth et les types ActorType>`
+
+- **<Rôle 1>** (ex. Client) : description courte, droits principaux, mode d'auth (anonymous / email / magic-link / etc.)
+- **<Rôle 2>** (ex. Pro / Artisan) : ...
+- **<Rôle 3>** (ex. Admin / Guest) : ...
+
+---
+
+## Vocabulaire métier
+
+Glossaire des termes propres au produit. **Indispensable** pour qu'un agent comprenne le naming des routes, des écrans et des DTOs.
+
+- **<Terme 1>** (ex. Ouvrage) : ...
+- **<Terme 2>** (ex. MEC, Mise en contact) : ...
+- **<Terme 3>** (ex. Intervention) : ...
+- **<Terme 4>** (ex. Trade, métier d'artisan) : ...
+- **<Terme 5>** (ex. Réalisation) : ...
+- ...
+
+(Source typique : section terms dans les `.md` de spec + grep des noms d'enum dans les types backend)
+
+---
+
+## Entités principales et leurs états
+
+Pour chaque entité métier importante, son rôle, ses attributs clés, ses états (si applicable) et ses transitions.
+
+### <Entité 1> (ex. Pro / Artisan)
+- **Rôle** : ...
+- **Attributs clés** : id, name, ...
+- **États** : (si applicable, ex. `pending_review`, `validated`, `suspended`)
+- **Relations** : ...
+
+### <Entité 2> (ex. Intervention)
+- **Rôle** : ...
+- **Attributs clés** : ...
+- **États** : `open` → `quoteSent` → `quoteAccepted` → `scheduled` → `completed` (ou `cancelled` à n'importe quelle étape)
+- **Transitions** : qui peut déclencher quelle transition (client / pro / système)
+
+### <Entité 3> (ex. MEC)
+- ...
+
+(Source typique : types `XxxStatus`, enums backend, schéma DB)
+
+---
+
+## Flows clés
+
+Les enchaînements importants. Pour chaque flow : qui démarre, qui agit à chaque étape, quels écrans sont impliqués, quels endpoints sont appelés.
+
+### Flow `<nom flow>` (ex. MEC → Intervention)
+1. **<Acteur>** initie via `<écran>` → appelle `<endpoint>`
+2. **<Acteur>** reçoit la notification, ouvre `<écran>` → décide (accepte / refuse)
+3. ...
+
+### Flow `<nom flow>` (ex. onboarding Pro)
+1. ...
+
+### Flow `<nom flow>` (ex. paiement / facturation)
+1. ...
+
+---
+
+## Carte des écrans
+
+Liste exhaustive des écrans de l'app, regroupés par rôle / section.
+
+### Côté <Rôle 1> (ex. Client)
+
+#### Section publique (non connecté)
+- `<EcranName>Screen` : but court (1 ligne)
+- ...
+
+#### Section connectée
+- `<EcranName>Screen` : but court
+- `<EcranName>DetailScreen` : détail d'une entité X
+- ...
+
+### Côté <Rôle 2> (ex. Pro)
+
+#### Section publique
+- ...
+
+#### Section connectée
+- ...
+
+### Écrans transverses
+- `<EcranName>Screen` : utilisé par tous les rôles
+- ...
+
+(Source typique : noms de fichiers `*Screen.swift` et enums de navigation `RootRoute`, `<Role>Tab`)
+
+---
+
+## Features livrées (registre chronologique)
+
+Historique des features ajoutées au produit, dans l'ordre. Maintenu par `business-keeper` à chaque `/feature` réussie.
+
+| Date | Slug | Scope | Description courte |
+|---|---|---|---|
+| `<YYYY-MM-DD>` | `<slug>` | api | `<description>` |
+| `<YYYY-MM-DD>` | `<slug>` | mobile | `<description>` |
+| `<YYYY-MM-DD>` | `<slug>` | api+mobile | `<description>` |
+| ... | ... | ... | ... |
+
+---
+
+## Hors scope
+
+Ce que l'app **ne fait pas** (et pourquoi). Empêche les agents de proposer des features qui sortent du périmètre, et capture les décisions produit explicites.
+
+- **<Sujet 1>** (ex. paiement en ligne) : raison (ex. « non géré dans la V1, paiement direct entre client et pro hors app »)
+- **<Sujet 2>** (ex. multi-langue) : raison (ex. « francophone uniquement »)
+- ...
+
+---
+
+## Historique des évolutions du contexte
+
+Les agents notent ici les changements significatifs détectés au fil des features (nouvelle entité, nouveau flow majeur, etc.).
+
+- `<YYYY-MM-DD>` — `<résumé>` (source : `<discovery | business-keeper | manuel>`)

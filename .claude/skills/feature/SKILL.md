@@ -24,12 +24,13 @@ Avant de lancer le moindre sub-agent :
    - `.claude/agents/parity-auditor.md` accessible
    - `.claude/agents/ds-guardian.md` accessible
    - `.claude/agents/context-keeper.md` accessible
+   - `.claude/agents/business-keeper.md` accessible
    - `.claude/agents/project-discoverer.md` accessible
    - `.claude/agents/system-retrospective.md` accessible
    Si un fichier manque, arrête-toi et signale : « Le système d'agents n'est pas correctement installé. Lance `~/work/claude-mobile-agents/install.sh` depuis la racine du projet. »
-3. **Vérifie l'existence de `.claude/project-context.md`** :
-   - Si **absent ou vide** → annonce « Premier `/feature` sur ce projet, je lance la discovery. » puis va à l'étape `Discovery` ci-dessous.
-   - Si **présent** → lis-le et tiens-le pour vrai.
+3. **Vérifie l'existence et l'état de `.claude/project-context.md` ET `.claude/business-context.md`** :
+   - Si l'un des deux est **absent ou template-like** (placeholders `<À CONFIRMER>` ou `<...>` encore présents en majorité) → annonce « Premier `/feature` sur ce projet (ou contexte incomplet), je lance la discovery. » puis va à l'étape `Discovery` ci-dessous.
+   - Si les deux sont **présents et remplis** → lis-les et tiens-les pour vrai.
 4. **Pré-vol git par sous-projet** : pour chaque repo détecté (`<api-dir>`, `<ios-dir>`, `<android-dir>`), exécute :
    ```bash
    git -C <dir> status --porcelain
@@ -38,15 +39,15 @@ Avant de lancer le moindre sub-agent :
 
 ## Discovery (uniquement au premier `/feature` du projet)
 
-Si `project-context.md` est absent ou vide :
+Si `project-context.md` ou `business-context.md` est absent ou template-like :
 
 1. Lance l'agent `project-discoverer` avec :
-   - **Contexte** : « Scanne ce projet pour en extraire la stack et les conventions. Génère `.claude/project-context.md` à partir du template. Si tu n'es pas sûr d'un champ, marque-le `<À CONFIRMER>`. Affiche un résumé à la fin, pas le fichier complet. »
-2. Quand l'agent rend la main, présente son résumé au dev.
-3. Demande explicitement : « Le contexte projet est-il bon ? Réponds :
+   - **Contexte** : « Scanne ce projet pour en extraire (a) la stack et les conventions techniques (project-context.md) et (b) la vue produit : rôles, vocabulaire, entités/états, flows, carte des écrans (business-context.md). Génère les deux fichiers à partir des templates. Si tu n'es pas sûr d'un champ, marque-le `<À CONFIRMER>`. Affiche un résumé à la fin, pas les fichiers complets. »
+2. Quand l'agent rend la main, présente son résumé au dev (technique + métier).
+3. Demande explicitement : « Les deux contextes sont-ils bons ? Réponds :
    - **« ok »** pour valider et continuer avec la feature `<description>`
    - **« corrige : ... »** pour me dire ce qu'il faut ajuster (je relance la discovery)
-   - **« je corrige à la main »** : j'attends que tu édites `.claude/project-context.md`, puis tape « ok » »
+   - **« je corrige à la main »** : j'attends que tu édites `.claude/project-context.md` ou `.claude/business-context.md`, puis tape « ok » »
 4. Une fois validé, **continue avec la feature**. Ne reposes pas la description, tu l'as déjà.
 
 ## Étape 1 — Planification
@@ -54,7 +55,7 @@ Si `project-context.md` est absent ou vide :
 Lance l'agent `feature-planner` avec :
 
 - **Description de la feature** : la phrase fournie par l'utilisateur, telle quelle
-- **Contexte** : « Lis `CLAUDE.md` et `.claude/project-context.md`. Produis un plan technique conforme aux conventions du projet courant. Identifie le scope (api / mobile / api+mobile). Read-only. »
+- **Contexte** : « Lis `CLAUDE.md`, `.claude/project-context.md` (technique) ET `.claude/business-context.md` (métier). Produis un plan technique conforme aux conventions du projet courant, en utilisant le vocabulaire métier et en positionnant la feature dans les flows existants. Identifie le scope (api / mobile / api+mobile). Read-only. »
 
 Récupère le plan en sortie. Si le scope est `mobile` ou `api+mobile`, rappelle au dev : « Cette feature touche le mobile. Le workflow sera séquentiel : iOS d'abord (ios-builder + ios-reviewer), puis Android qui porte le code iOS (android-builder + android-reviewer), puis parity-auditor pour un audit complet du domaine. Compter ~5-10 min selon la complexité, incluant deux builds (xcodebuild + gradle). »
 
@@ -150,18 +151,18 @@ git -C <dir> commit -m "<type>(<scope>): <slug>"
 
 **Ne commit jamais sans accord explicite.** Récupère le hash du commit créé pour l'inclure dans le journal de feedback.
 
-## Étape 7 — Mise à jour du contexte projet (OBLIGATOIRE)
+## Étape 7 — Mise à jour du contexte TECHNIQUE (OBLIGATOIRE)
 
-Cette étape lutte contre l'obsolescence du `project-context.md`. Sans elle, le contexte fige une photo qui se périme à mesure que le projet évolue.
+Cette étape lutte contre l'obsolescence du `project-context.md`. Sans elle, le contexte technique fige une photo qui se périme à mesure que le projet évolue.
 
 1. Lance l'agent `context-keeper` avec :
    - **Contexte** : « Analyse les diffs des sous-projets touchés par cette feature et propose des mises à jour ciblées de `.claude/project-context.md` selon les critères conservateurs définis dans ton prompt. Read-only. »
 
 2. **Reçois son rapport**. Trois cas :
 
-   **a) Rien à intégrer** (cas fréquent et normal) : le rapport indique « Aucun patch nécessaire ». Annonce-le au dev et passe directement à l'étape 8.
+   **a) Rien à intégrer** (cas fréquent et normal) : le rapport indique « Aucun patch nécessaire ». Annonce-le au dev et passe à l'étape 8.
 
-   **b) 1 à 5 patches proposés** : présente le rapport complet (analyse + patches) au dev. Puis pour chaque patch dans l'ordre :
+   **b) 1 à 5 patches proposés** : présente le rapport complet au dev. Puis pour chaque patch :
 
    > **Patch <N>** — [helper|ds-component|pattern|convention|dependency]
    > Justification : `<...>`
@@ -170,33 +171,57 @@ Cette étape lutte contre l'obsolescence du `project-context.md`. Sans elle, le 
    > ...
    > ```
    >
-   > Réponds :
-   > - **« apply »** pour appliquer
-   > - **« skip »** pour passer
-   > - **« edit : ... »** pour ajuster avant d'appliquer
-   > - **« stop »** pour interrompre la mise à jour du contexte
+   > Réponds : `apply` / `skip` / `edit : ...` / `stop`.
 
 3. **Avant d'appliquer le premier patch validé**, crée un backup obligatoire :
    ```bash
    mkdir -p .claude/.context-backup
    cp .claude/project-context.md ".claude/.context-backup/$(date +%Y-%m-%d)-<slug>-before.md"
    ```
-   Ce backup permet à `/feature-rollback` de restaurer le contexte si la feature est annulée plus tard.
 
-4. **Applique les patches validés** via Edit ciblé sur `.claude/project-context.md`. Si le `old_string` du diff ne correspond pas exactement au fichier, signale-le et propose au dev de demander à `context-keeper` de regénérer ce patch précis.
+4. **Applique les patches validés** via Edit ciblé. Confirme chaque patch appliqué.
 
-5. **Confirme** : « Patch N appliqué » (ou « skippé »).
+5. **Mets à jour le champ** `Dernière mise à jour automatique` de `project-context.md`.
 
-6. **Mets à jour le champ frontmatter** `Dernière mise à jour automatique` de `project-context.md` avec la date du jour.
+6. Récap : « Contexte technique mis à jour : <n> patches appliqués sur <m> proposés. Backup : .claude/.context-backup/<date>-<slug>-before.md »
 
-7. Récap au dev :
+## Étape 8 — Mise à jour du contexte MÉTIER (OBLIGATOIRE)
+
+Cette étape lutte contre l'obsolescence du `business-context.md`. Sans elle, la vue produit fige une photo qui se périme.
+
+1. Lance l'agent `business-keeper` avec :
+   - **Contexte** : « Analyse les diffs des sous-projets touchés par cette feature, le plan validé et la description initiale du dev. Propose des mises à jour ciblées de `.claude/business-context.md` selon les critères conservateurs définis dans ton prompt. Le patch `registry` (entrée dans le tableau des features livrées) est systématique sauf si la feature est purement technique. Read-only. »
+
+2. **Reçois son rapport**. Cas typiques :
+
+   **a) Patch registry seul** (cas le plus fréquent — la feature est livrée, on note ça mais sans plus) : présente le patch, applique-le après validation.
+
+   **b) 1 à 6 patches proposés** (registry + autres patches métier) : présente le rapport complet. Pour chaque patch :
+
+   > **Patch <N>** — [registry|screen|entity|state|flow|vocabulary|role|placeholder-fill]
+   > Justification : `<...>`
+   >
+   > ```diff
+   > ...
+   > ```
+   >
+   > Réponds : `apply` / `skip` / `edit : ...` / `stop`.
+
+   **c) Rien à intégrer** (feature purement technique) : annonce-le au dev et passe à l'étape 9.
+
+3. **Avant d'appliquer le premier patch validé**, crée un backup obligatoire :
+   ```bash
+   mkdir -p .claude/.business-backup
+   cp .claude/business-context.md ".claude/.business-backup/$(date +%Y-%m-%d)-<slug>-before.md"
    ```
-   Contexte mis à jour : <n> patches appliqués sur <m> proposés.
-   Backup : .claude/.context-backup/<date>-<slug>-before.md
-   Pour annuler : /feature-rollback
-   ```
 
-## Étape 8 — Capture du feedback (OBLIGATOIRE)
+4. **Applique les patches validés** via Edit ciblé. Confirme chaque patch appliqué.
+
+5. **Mets à jour le champ** `Dernière mise à jour automatique` de `business-context.md` si présent.
+
+6. Récap : « Contexte métier mis à jour : <n> patches appliqués sur <m> proposés. Backup : .claude/.business-backup/<date>-<slug>-before.md »
+
+## Étape 9 — Capture du feedback (OBLIGATOIRE)
 
 **Ne saute jamais cette étape**, même si le dev est pressé. Sans feedback, `/feature-retro` n'a rien à exploiter.
 
@@ -223,7 +248,7 @@ Une fois la réponse reçue, écris le journal dans `.claude/feedback/YYYY-MM-DD
 
 Confirme : « Journal écrit dans `.claude/feedback/<filename>` — `/feature-retro` pourra l'exploiter. »
 
-## Étape 9 — Clôture
+## Étape 10 — Clôture
 
 Termine en demandant :
 
@@ -233,26 +258,27 @@ Si `.claude/feedback/` contient **5+ entrées non archivées**, ajoute :
 > 💡 Tu as `<n>` journaux accumulés — bon moment pour lancer `/feature-retro` dès que tu auras 10 minutes.
 
 Si la feature s'est mal passée et que tu veux tout annuler :
-> Tu peux lancer `/feature-rollback` pour restaurer le `project-context.md` et archiver le journal de feedback de cette feature. Les commits des 3 repos ne seront pas touchés (à faire à la main via `git reset` si nécessaire).
+> Tu peux lancer `/feature-rollback` pour restaurer `project-context.md` et `business-context.md` depuis les backups, et archiver le journal de feedback de cette feature. Les commits des 3 repos ne seront pas touchés (à faire à la main via `git reset` si nécessaire).
 
 ## Règles d'orchestration
 
-- **Gates humaines** : (1) après le plan, (2) à chaque patch context-keeper. Pas d'autre gate pendant build/review.
+- **Gates humaines** : (1) après le plan, (2) à chaque patch context-keeper, (3) à chaque patch business-keeper. Pas d'autre gate pendant build/review.
 - **Pré-vol git non bloquant** : avertis et continue.
-- **Discovery déclenchée automatiquement** si `project-context.md` absent ou incomplet (placeholders restants).
+- **Discovery déclenchée automatiquement** si `project-context.md` ou `business-context.md` est absent ou template-like.
 - **Si un sub-agent échoue ou rend un output vide** : remonte au dev, ne tente pas de réparer toi-même.
 - **Si le build TS échoue dans api-builder** : api-builder doit corriger avant de rendre. Si persiste, remonte au dev.
-- **Tu n'écris dans le projet** que (a) le journal de feedback en étape 8 et (b) les patches context-keeper validés en étape 7 (avec backup obligatoire avant la première application) — sinon délègue aux builders.
+- **Tu n'écris dans le projet** que (a) le journal de feedback en étape 9, (b) les patches context-keeper validés en étape 7, (c) les patches business-keeper validés en étape 8 (chacun avec backup obligatoire avant première application) — sinon délègue aux builders.
 - **Tu ne commits jamais** sans accord explicite à l'étape 6.
-- **Backup obligatoire** avant la première application d'un patch context-keeper, dans `.claude/.context-backup/`.
+- **Backups obligatoires** : `.claude/.context-backup/` pour les patches context-keeper, `.claude/.business-backup/` pour les patches business-keeper.
 
 ## Erreurs courantes à éviter
 
 - Lancer api-builder sans « go » explicite du dev
-- Sauter la discovery quand `project-context.md` est absent
-- Laisser le dev deviner ce que fait chaque étape — annonce chaque transition (« Discovery en cours… », « Plan reçu, je te le présente… », « Lancement du builder… »)
+- Sauter la discovery quand `project-context.md` ou `business-context.md` est absent / incomplet
+- Laisser le dev deviner ce que fait chaque étape — annonce chaque transition
 - Sauter la review parce que le build a passé — la review attrape les écarts de convention
 - Modifier `CLAUDE.md` ou les fichiers d'agents pendant l'exécution
-- Skipper la capture de feedback (étape 7)
+- Skipper la capture de feedback (étape 9)
+- Skipper l'étape business-keeper (8) sous prétexte que la feature est « petite » — au minimum le patch registry doit être proposé
 - Commiter automatiquement
 - Mélanger les scopes (si scope `api` et le dev dit « ajoute aussi l'écran iOS », bascule en `api+mobile` proprement, ne fais pas du mobile en douce)
