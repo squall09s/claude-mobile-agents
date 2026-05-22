@@ -21,6 +21,7 @@ Avant de lancer le moindre sub-agent :
    - `.claude/agents/ios-reviewer.md` accessible
    - `.claude/agents/android-builder.md` accessible
    - `.claude/agents/android-reviewer.md` accessible
+   - `.claude/agents/i18n-collector.md` accessible
    - `.claude/agents/parity-auditor.md` accessible
    - `.claude/agents/ds-guardian.md` accessible
    - `.claude/agents/context-keeper.md` accessible
@@ -49,7 +50,7 @@ Si le dev a validé le mode `light` au pré-vol :
 
 1. **Pas de planner formel** : pose 2-4 questions structurantes au dev (décisions de schéma, choix de bornes / défauts), récupère les réponses, puis enchaîne directement les builders.
 2. **Pipeline** : api-builder (si applicable) → ios-builder → android-builder, en série stricte. Chaque builder lit le diff du précédent comme spec implicite (déjà la pratique côté Android pour iOS, à étendre côté Android pour API).
-3. **Pas de reviewers, pas de parity-auditor, pas de ds-guardian**. L'audit est reporté à `/feature-retro` ou à un `/ds-audit` standalone.
+3. **Pas de reviewers, pas de i18n-collector, pas de parity-auditor, pas de ds-guardian**. L'audit est reporté à `/feature-retro` ou à un `/ds-audit` standalone. Si la feature `light` a introduit des clés de traduction, c'est au dev de les ajouter manuellement dans son outil de gestion de traductions — sinon attendre la prochaine feature `full` pour que `i18n-collector` les collecte (à condition qu'elles soient toujours dans le diff git, donc avant commit).
 4. **Context-keeper et business-keeper en batch** : au lieu d'une gate par patch, présente tous les patches en une fois et accepte une réponse groupée (« apply 1,3,5 » ou « apply all » / « skip all »).
 5. **Journal de feedback unique** pour l'ensemble du run (même si plusieurs features bundlées), avec `review_verdict: NO_REVIEW_MODE_LIGHT`.
 
@@ -104,7 +105,7 @@ Le workflow mobile est **séquentiel** : iOS d'abord, puis Android utilise le co
 
 ### Scope = `mobile`
 
-Séquence stricte : `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` → `parity-auditor`.
+Séquence stricte : `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` → `i18n-collector` → `parity-auditor` → `ds-guardian (scoped)`.
 
 1. Lance `ios-builder` avec :
    - **Plan complet** validé
@@ -122,11 +123,15 @@ Séquence stricte : `ios-builder` → `ios-reviewer` → `android-builder` → `
    - **Plan validé** + **rapport android-builder** + **diff git Android** + **diff git iOS** (pour audit parité)
    - **Contexte** : « Relis le delta git Android. Audite la parité stricte avec le code iOS (lis aussi <ios-dir>). Toute divergence non documentée est bloquante. Read-only. »
 
-5. Lance `parity-auditor` avec :
-   - **Plan validé** + **les 4 rapports précédents** + **domaines fonctionnels touchés** (déduits des chemins des fichiers modifiés)
-   - **Contexte** : « Audite la parité iOS ↔ Android sur les domaines fonctionnels touchés par cette feature, indépendamment du diff git. Compare l'ensemble des écrans, composants DS, méthodes VM et DTOs présents dans les deux apps. Classe chaque divergence en nouvelle (introduite par cette feature, signal de trou dans la review) ou héritée (dette préexistante). Read-only. »
+5. Lance `i18n-collector` avec :
+   - **Plan validé** + **slug de la feature** (pour le dossier de sortie) + **rapports ios-builder / android-builder** (pour connaître les fichiers touchés)
+   - **Contexte** : « Scanne les diffs git iOS et Android pour extraire les nouvelles clés de traduction introduites par cette feature, selon les patterns d'invocation et la convention de clés déclarés dans la section `## i18n` de `project-context.md`. Génère un fichier `.strings` par langue active dans `<workspace>/.claude/i18n-pending/<date>-<slug>/`. Read-only sur les repos iOS / Android, écriture uniquement dans le dossier de sortie. Si la section `## i18n` indique `non implémentée — strings hardcodées`, rends EMPTY sans rien écrire. Signale les divergences iOS ↔ Android sur les clés pour que parity-auditor les inclue à son audit. »
 
-6. Lance `ds-guardian` en mode **scoped** avec :
+6. Lance `parity-auditor` avec :
+   - **Plan validé** + **les 5 rapports précédents** (incluant i18n-collector) + **domaines fonctionnels touchés** (déduits des chemins des fichiers modifiés)
+   - **Contexte** : « Audite la parité iOS ↔ Android sur les domaines fonctionnels touchés par cette feature, indépendamment du diff git. Compare l'ensemble des écrans, composants DS, méthodes VM, DTOs **et clés i18n** présents dans les deux apps. Réutilise les divergences de clés signalées par i18n-collector pour la catégorie i18n de ton rapport. Classe chaque divergence en nouvelle (introduite par cette feature, signal de trou dans la review) ou héritée (dette préexistante). Read-only. »
+
+7. Lance `ds-guardian` en mode **scoped** avec :
    - **Diffs git iOS et Android** (fichiers touchés par cette feature)
    - **Contexte** : « Mode `scoped`. Audite uniquement les fichiers touchés par cette feature. Focus sur axes 1 (bypass du DS sur les écrans) et 3 (cohérence fine iOS↔Android sur les composants touchés). N'exécute PAS les axes 2 et 4 (réservés au mode full). Read-only. Objectif : empêcher cette feature d'introduire une nouvelle dette DS. »
 
@@ -135,9 +140,9 @@ Séquence stricte : `ios-builder` → `ios-reviewer` → `android-builder` → `
 Séquence complète : api d'abord, mobile ensuite.
 
 1. `api-builder` → `api-reviewer` (comme scope `api`)
-2. `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` → `parity-auditor` → `ds-guardian (scoped)` (comme scope `mobile`)
+2. `ios-builder` → `ios-reviewer` → `android-builder` → `android-reviewer` → `i18n-collector` → `parity-auditor` → `ds-guardian (scoped)` (comme scope `mobile`)
 
-Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code) avant que le mobile soit écrit. iOS sert ensuite de spec pour Android. `parity-auditor` consolide la vue parité structurelle, `ds-guardian` vérifie le respect fin du design system.
+Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code) avant que le mobile soit écrit. iOS sert ensuite de spec pour Android. `i18n-collector` collecte les nouvelles clés de traduction introduites par les builders mobiles. `parity-auditor` consolide la vue parité structurelle (incluant les clés i18n), `ds-guardian` vérifie le respect fin du design system.
 
 ## Étape 5 — Synthèse
 
@@ -147,6 +152,7 @@ Présente au dev en français concis :
 2. **Tests à passer** : commandes `curl` / actions UI fournies par les builders
 3. **Verdict review** : PASS / PASS_WITH_MINOR_ISSUES / BLOCKED
 4. **Audit DS** (si scope mobile / api+mobile) : verdict de ds-guardian scoped, bypass éventuels, divergences fines détectées
+4b. **Collecte i18n** (si scope mobile / api+mobile) : verdict d'`i18n-collector` (COLLECTED / EMPTY / INCOMPLETE), nombre de clés extraites, chemin du dossier de sortie. Si INCOMPLETE (clés en `TODO` côté langue principale), liste-les explicitement et rappelle au dev qu'il doit les peupler à la main avant d'importer dans son outil de traductions. Si EMPTY, mention en une ligne (ne pas alourdir la synthèse).
 5. **Bloquants** s'il y en a — avec proposition de relance du builder pour corriger
 6. **TODO restant** : si scope `api` mais que la review signale du portage iOS/Android nécessaire, lister précisément ce qu'il faudra ajouter
 7. **Suggestion `/ds-audit`** : si ds-guardian scoped a détecté des bypass / divergences récurrents, suggère de lancer `/ds-audit` en standalone plus tard pour un audit complet

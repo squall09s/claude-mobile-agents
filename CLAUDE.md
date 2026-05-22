@@ -33,7 +33,8 @@ Le **workspace** Claude Code (où vit `CLAUDE.md`, `.claude/agents` symlink, `.c
 └── .claude/
     ├── agents, skills              (symlinks vers le système)
     ├── project-context.md          (déclare api-dir, ios-dir, android-dir en absolu)
-    └── feedback/                   (journaux locaux)
+    ├── feedback/                   (journaux locaux)
+    └── i18n-pending/               (clés de traduction collectées par feature, à importer manuellement)
 
 /n/importe/où/sur/disque/api/      ← repo git API (chemin absolu déclaré)
 /ailleurs/encore/ios/              ← repo git iOS
@@ -86,7 +87,7 @@ Toute feature est classifiée par le `feature-planner` en un de ces trois scopes
 | Scope | Description | Agents impliqués |
 |---|---|---|
 | `api` | Touche uniquement l'API (ex. ajouter un endpoint admin, refactor backend) | feature-planner, api-builder, api-reviewer |
-| `mobile` | Touche uniquement iOS + Android (ex. refonte UI, nouveau composant DS) — l'API existante couvre déjà le besoin | feature-planner, ios-builder, ios-reviewer, android-builder, android-reviewer, parity-auditor, ds-guardian |
+| `mobile` | Touche uniquement iOS + Android (ex. refonte UI, nouveau composant DS) — l'API existante couvre déjà le besoin | feature-planner, ios-builder, ios-reviewer, android-builder, android-reviewer, i18n-collector, parity-auditor, ds-guardian |
 | `api+mobile` | Touche l'API et les apps (cas le plus courant) | tous |
 
 Le planner **vérifie le contrat API existant** quand il évalue une feature `mobile`. Si l'API ne couvre pas le besoin, il bascule en `api+mobile`.
@@ -99,8 +100,8 @@ Deux modes coexistent, choisis explicitement par le dev au moment d'invoquer `/f
 
 | Mode | Quand | Pipeline |
 |---|---|---|
-| `full` (défaut) | Feature nouvelle, écrans inédits, logique métier non triviale | planner → builders → reviewers → parity-auditor → ds-guardian (scoped) → context-keeper → business-keeper → feedback |
-| `light` | Refactor pur (renommage, déplacement), feature très simple (1 écran ou filtre local), série de petites features bundlées | (questions directes au dev, pas de planner formel) → builders en série → context-keeper en batch → business-keeper en batch → feedback unique. Pas de reviewers, pas de parity-auditor, pas de ds-guardian. Audit reporté à `/feature-retro`. |
+| `full` (défaut) | Feature nouvelle, écrans inédits, logique métier non triviale | planner → builders → reviewers → i18n-collector → parity-auditor → ds-guardian (scoped) → context-keeper → business-keeper → feedback |
+| `light` | Refactor pur (renommage, déplacement), feature très simple (1 écran ou filtre local), série de petites features bundlées | (questions directes au dev, pas de planner formel) → builders en série → context-keeper en batch → business-keeper en batch → feedback unique. Pas de reviewers, pas de i18n-collector, pas de parity-auditor, pas de ds-guardian. Audit reporté à `/feature-retro` ou à la prochaine feature `full`. |
 
 **Quand suggérer le mode `light` au dev** :
 - La description contient « refactor pur », « renommage », « aucun changement de comportement métier », ou similaire
@@ -126,16 +127,24 @@ Si le mode n'est pas précisé, prendre `full` par défaut mais signaler la poss
    │
    ├─ Étape 2 : selon scope
    │    • api        → api-builder → api-reviewer
-   │    • mobile     → ios-builder → ios-reviewer → android-builder → android-reviewer → parity-auditor → ds-guardian (scoped)
-   │    • api+mobile → api-builder → api-reviewer → ios-builder → ios-reviewer → android-builder → android-reviewer → parity-auditor → ds-guardian (scoped)
+   │    • mobile     → ios-builder → ios-reviewer → android-builder → android-reviewer → i18n-collector → parity-auditor → ds-guardian (scoped)
+   │    • api+mobile → api-builder → api-reviewer → ios-builder → ios-reviewer → android-builder → android-reviewer → i18n-collector → parity-auditor → ds-guardian (scoped)
    │
    │   Note : le workflow mobile est SÉQUENTIEL et iOS d'abord. android-builder
    │   utilise le code iOS qui vient d'être produit comme spec implicite pour
    │   garantir la parité (mêmes noms d'écrans, mêmes composants DS, même flow).
    │   android-reviewer relit également le code iOS pour vérifier l'alignement.
+   │   i18n-collector extrait les nouvelles clés de traduction introduites par
+   │   la feature (scan des invocations dans le diff iOS+Android) et dépose un
+   │   fichier .strings par langue active dans <workspace>/.claude/i18n-pending/
+   │   — outil-agnostique (le dev importe ensuite dans Crowdin / Lokalise /
+   │   autre). Si l'i18n n'est pas implémentée sur le projet (section i18n du
+   │   project-context.md = `non implémentée`), l'agent rend immédiatement
+   │   EMPTY et n'écrit rien.
    │   parity-auditor termine la séquence avec un audit complet du domaine
    │   fonctionnel touché (pas juste le delta) pour détecter aussi les
-   │   divergences héritées qui se sont accumulées au fil des features.
+   │   divergences héritées qui se sont accumulées au fil des features —
+   │   y compris les divergences de clés i18n signalées par i18n-collector.
    │
    ├─ Étape 3 : synthèse au dev (fichiers touchés, tests, verdict review)
    │
@@ -280,7 +289,8 @@ Chaque agent a un périmètre limité :
 | ios-reviewer | rien (read-only) |
 | android-builder | `<android-dir>/` (sources Kotlin, DTOs Retrofit, VM, écrans, DS) |
 | android-reviewer | rien (read-only) — lit aussi `<ios-dir>/` pour vérifier la parité |
-| parity-auditor | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/`, audite l'ensemble du domaine touché |
+| i18n-collector | `<workspace>/.claude/i18n-pending/<date>-<slug>/` uniquement — read-only sur `<ios-dir>/` et `<android-dir>/`, lit le diff git pour extraire les nouvelles clés de traduction |
+| parity-auditor | rien (read-only) — lit `<ios-dir>/` ET `<android-dir>/`, audite l'ensemble du domaine touché (y compris les clés i18n collectées par i18n-collector) |
 | ds-guardian | rien (read-only) — audite l'usage et la santé du design system (modes scoped et full) |
 | context-keeper | rien (read-only, propose des patches sur `.claude/project-context.md`) — contexte TECHNIQUE |
 | business-keeper | rien (read-only, propose des patches sur `.claude/business-context.md`) — contexte MÉTIER (vue produit) |
@@ -310,5 +320,6 @@ Tout agent qui tenterait d'écrire hors de son périmètre doit refuser et signa
 | `.claude/skills/*/SKILL.md` | repo `~/work/claude-mobile-agents/` | partagé entre projets |
 | `.claude/project-context.md` | projet local | propre au projet |
 | `.claude/feedback/*.md` | projet local | propre au projet |
+| `.claude/i18n-pending/<date>-<slug>/*.strings` | projet local | propre au projet (généré par `i18n-collector`) |
 
 Le `install.sh` du repo crée les symlinks corrects dans chaque projet consommateur.

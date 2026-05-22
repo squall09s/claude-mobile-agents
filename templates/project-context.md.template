@@ -226,6 +226,47 @@ Les fichiers helpers (ex. `_shared.ts`, `_mappers.ts`) à connaître avant d'inv
 
 ---
 
+## i18n
+
+### État
+
+`implémentée` | `non implémentée — strings hardcodées`
+
+*(rempli par `project-discoverer` à partir du scan des fichiers de strings et des invocations dans le code, côté iOS et Android. Si état = `non implémentée`, l'agent `i18n-collector` rend systématiquement EMPTY et ne tourne pas.)*
+
+### Langues actives
+
+- **Principale** : `<code BCP-47, ex. fr>` (`<nom complet>`)
+- **Secondaires** : `<liste ou vide>`
+
+### Chemins des fichiers de strings
+
+| Langue | iOS | Android |
+|---|---|---|
+| `<lang_principale>` | `<chemin absolu ou relatif au ios-dir>` | `<chemin absolu ou relatif au android-dir>` |
+| `<lang_secondaire>` | `<chemin>` | `<chemin>` |
+
+*(vide si i18n non implémentée)*
+
+### Patterns d'invocation
+
+**iOS** :
+- `<liste des patterns détectés, ex. NSLocalizedString("<key>"), String(localized: "<key>")>`
+
+**Android** :
+- `<liste des patterns détectés, ex. stringResource(R.string.<key>), getString(R.string.<key>)>`
+
+### Convention de nommage des clés
+
+- **Canonique (sortie i18n-collector)** : `<convention, ex. dot-séparé lowerCamelCase>`
+- **Mapping iOS → Android** : `<règle, ex. les . deviennent _ côté ressource Android>`
+
+### Outil de gestion externe
+
+`<Crowdin | Lokalise | POEditor | autre | non applicable>` *(informatif uniquement, l'agent ne s'adresse pas à l'outil)*
+
+---
+
 ## Specs métier & ressources
 
 Liste des fichiers de spec utiles aux agents :

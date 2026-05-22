@@ -97,6 +97,11 @@ Repère :
 - Réseau : `URLSession` ? `Alamofire` ? (chercher dans `Network/` ou `*Manager.swift`)
 - Design system : préfixe (grep `struct Xxx<Btn|Card|Theme>` dans `**/DesignSystem/`)
 - Cible iOS : `Info.plist` ou `.xcodeproj/project.pbxproj`
+- **i18n** : présence de fichiers de strings et d'invocations dans le code. Repère :
+  - Fichiers : `find <ios-dir> -type f \( -name "*.strings" -o -name "*.xcstrings" -o -name "*.stringsdict" \)` et `find <ios-dir> -type d -name "*.lproj"`
+  - Invocations : `grep -rn "NSLocalizedString\|String(localized:\|LocalizedStringKey" <ios-dir>` (limiter à 5 résultats)
+  - Si aucun fichier ET aucune invocation → état `non implémentée — strings hardcodées`
+  - Sinon → recense les langues actives (dossiers `*.lproj` ou variantes de catalog), les chemins, et les patterns d'invocation effectivement utilisés
 
 ### Android (si `android-dir` est renseigné)
 
@@ -116,6 +121,11 @@ Repère :
 - Design system : préfixe (grep `fun <Prefix><Btn|Card>(` dans `**/designsystem/`)
 - Min SDK depuis `build.gradle.kts`
 - Dépendances clés depuis `build.gradle.kts`
+- **i18n** : présence de ressources strings et d'invocations dans le code. Repère :
+  - Fichiers : `find <android-dir> -type f -name "strings.xml"` et `find <android-dir> -type d -name "values*"` (variantes `values-en/`, `values-es/`, etc.)
+  - Contenu : si `strings.xml` n'a que des clés non utilisées (`app_name`, etc.) et qu'aucun `stringResource` / `getString(R.string.X)` n'est invoqué → considérer i18n comme `non implémentée`
+  - Invocations : `grep -rn "stringResource(R\.string\.\|getString(R\.string\." <android-dir>/app/src` (limiter à 5 résultats)
+  - Confronter aux résultats iOS pour produire un état cohérent (les deux plateformes sont en principe alignées sur l'état i18n)
 
 ### Specs & ressources métier
 
@@ -163,6 +173,11 @@ Et du type d'auth (anonymous / email / magic-link) à partir du code Supabase / 
 À partir du template (le contenu actuel du fichier puisqu'il a été copié depuis le template à l'install), remplace **tous les placeholders `<PLACEHOLDER>`** par les valeurs détectées.
 
 **Ne touche PAS** à la section `## ⚠️ Chemins` (renseignée par le dev). Tu peux compléter la table « Arborescence des repos » à partir des chemins déclarés.
+
+**Cas spécial section `## i18n`** :
+- Si tu n'as détecté **aucun** fichier de strings ni **aucune** invocation des patterns d'invocation listés ci-dessus, côté iOS comme Android → mets l'état `non implémentée — strings hardcodées`, vide les tableaux de chemins, et laisse les patterns / convention comme placeholders annotés `<À CONFIRMER : à définir le jour où l'i18n sera activée>`.
+- Si tu as détecté une infrastructure i18n (fichiers `.strings` / `.xcstrings` / `values-<lang>/strings.xml` + invocations dans le code) → mets l'état `implémentée`, recense les langues actives observées, renseigne les chemins effectifs trouvés, et liste les patterns d'invocation que tu as réellement vus dans le code. Si tu observes que les clés iOS sont dot-séparées et les clés Android underscore-séparées (cas standard), documente le mapping `. ↔ _` ; sinon, marque `<À CONFIRMER : règle de mapping iOS ↔ Android>`.
+- Dans tous les cas, l'agent `i18n-collector` lira cette section au moment de tourner — il faut donc qu'elle soit cohérente avec ce qui existe vraiment dans le code.
 
 Pour ce que tu **n'as pas pu détecter avec certitude**, mets `<À CONFIRMER : ton hypothèse>` — le dev validera.
 
