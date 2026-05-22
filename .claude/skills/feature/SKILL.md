@@ -36,6 +36,24 @@ Avant de lancer le moindre sub-agent :
    git -C <dir> status --porcelain
    ```
    Si non vide, **avertis** le dev (sans bloquer) : « Attention, des modifications non commitées existent déjà dans `<dir>` (`<n>` fichiers). Le diff de cette feature sera imprécis dans le journal. Tu peux stash/commit avant ou laisser couler. ». Continue dans tous les cas.
+5. **Détecte le mode d'exécution recommandé** (cf. `CLAUDE.md`, section « Modes d'exécution d'une feature ») :
+   - Si la description contient « refactor pur », « renommage », « aucun changement de comportement métier », « cosmétique », « cleanup », ou si elle évoque un bundle (« lance les features X, Y et Z », « enchaîne ces N petites tâches »), **propose explicitement le mode `light`** :
+     > Cette feature ressemble à un cas typique du **mode `light`** (refactor pur / petite feature / bundle). Le pipeline complet (planner + reviewers + parity-auditor + ds-guardian) prend ~30-60 min et a montré son sur-coût sur ce type de tâche (gain_time 1-2/5 dans les rétros). Le mode `light` lance les builders en série, sans review formelle, et tient en ~5-15 min. Réponds :
+     > - **« light »** pour le mode allégé
+     > - **« full »** pour le pipeline complet (défaut)
+   - Pour toute autre description, démarre directement en mode `full`.
+
+## Mode `light` — pipeline allégé
+
+Si le dev a validé le mode `light` au pré-vol :
+
+1. **Pas de planner formel** : pose 2-4 questions structurantes au dev (décisions de schéma, choix de bornes / défauts), récupère les réponses, puis enchaîne directement les builders.
+2. **Pipeline** : api-builder (si applicable) → ios-builder → android-builder, en série stricte. Chaque builder lit le diff du précédent comme spec implicite (déjà la pratique côté Android pour iOS, à étendre côté Android pour API).
+3. **Pas de reviewers, pas de parity-auditor, pas de ds-guardian**. L'audit est reporté à `/feature-retro` ou à un `/ds-audit` standalone.
+4. **Context-keeper et business-keeper en batch** : au lieu d'une gate par patch, présente tous les patches en une fois et accepte une réponse groupée (« apply 1,3,5 » ou « apply all » / « skip all »).
+5. **Journal de feedback unique** pour l'ensemble du run (même si plusieurs features bundlées), avec `review_verdict: NO_REVIEW_MODE_LIGHT`.
+
+En cas de doute en cours d'exécution (ex. divergence iOS↔Android non triviale détectée par le builder Android), le builder peut suggérer au dev de basculer la feature en `full` pour cette étape uniquement. Le dev tranche.
 
 ## Discovery (uniquement au premier `/feature` du projet)
 
@@ -132,6 +150,13 @@ Présente au dev en français concis :
 5. **Bloquants** s'il y en a — avec proposition de relance du builder pour corriger
 6. **TODO restant** : si scope `api` mais que la review signale du portage iOS/Android nécessaire, lister précisément ce qu'il faudra ajouter
 7. **Suggestion `/ds-audit`** : si ds-guardian scoped a détecté des bypass / divergences récurrents, suggère de lancer `/ds-audit` en standalone plus tard pour un audit complet
+8. **Dette héritée détectée par parity-auditor** (si scope mobile/api+mobile) : si le verdict est `PASS_WITH_HERITED_DEBT` ou si parity-auditor liste des divergences héritées (préexistantes, hors scope du diff), **capture-les explicitement** dans le journal de feedback à l'étape 9 sous une section dédiée `## Dette héritée à résorber` :
+   ```markdown
+   ## Dette héritée à résorber (détectée par parity-auditor, hors scope)
+   - <divergence 1>
+   - <divergence 2>
+   ```
+   Cette section sera lue par `/feature-retro` pour proposer des patches sur `project-context.md` (durcir une convention, documenter la dette) ou suggérer une feature dédiée de rattrapage.
 
 ## Étape 6 — Proposition de commit
 
@@ -266,6 +291,12 @@ Si la feature s'est mal passée et que tu veux tout annuler :
 - **Pré-vol git non bloquant** : avertis et continue.
 - **Discovery déclenchée automatiquement** si `project-context.md` ou `business-context.md` est absent ou template-like.
 - **Si un sub-agent échoue ou rend un output vide** : remonte au dev, ne tente pas de réparer toi-même.
+- **En cas d'erreur 529 (overloaded) en cascade sur un builder** (≥ 2 échecs successifs à 0 tool calls) : ne relance pas une 3e fois automatiquement. Affiche au dev :
+  > L'agent `<builder>` a échoué `<n>` fois consécutivement avec une erreur 529 (Anthropic API overloaded). Le travail partiel produit jusqu'ici est dans le diff git de `<dir>`. Trois options :
+  > - **« continue »** : je tente une nouvelle fois (utile si la surcharge est intermittente)
+  > - **« finish-manual »** : je liste précisément ce qu'il reste à faire (fichiers, erreurs build, étapes restantes) et tu finis à la main
+  > - **« stop »** : on s'arrête là, le diff partiel reste, à toi de voir
+  Si le dev choisit `finish-manual`, l'orchestrateur lit le diff partiel et le rapport partiel du builder, puis produit une liste précise des étapes restantes (fichiers à modifier avec snippets, erreurs TS à corriger, etc.) — sans appeler de sub-agent supplémentaire.
 - **Si le build TS échoue dans api-builder** : api-builder doit corriger avant de rendre. Si persiste, remonte au dev.
 - **Tu n'écris dans le projet** que (a) le journal de feedback en étape 9, (b) les patches context-keeper validés en étape 7, (c) les patches business-keeper validés en étape 8 (chacun avec backup obligatoire avant première application) — sinon délègue aux builders.
 - **Tu ne commits jamais** sans accord explicite à l'étape 6.

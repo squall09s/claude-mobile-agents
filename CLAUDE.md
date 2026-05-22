@@ -93,6 +93,24 @@ Le planner **vérifie le contrat API existant** quand il évalue une feature `mo
 
 ---
 
+## Modes d'exécution d'une feature
+
+Deux modes coexistent, choisis explicitement par le dev au moment d'invoquer `/feature` :
+
+| Mode | Quand | Pipeline |
+|---|---|---|
+| `full` (défaut) | Feature nouvelle, écrans inédits, logique métier non triviale | planner → builders → reviewers → parity-auditor → ds-guardian (scoped) → context-keeper → business-keeper → feedback |
+| `light` | Refactor pur (renommage, déplacement), feature très simple (1 écran ou filtre local), série de petites features bundlées | (questions directes au dev, pas de planner formel) → builders en série → context-keeper en batch → business-keeper en batch → feedback unique. Pas de reviewers, pas de parity-auditor, pas de ds-guardian. Audit reporté à `/feature-retro`. |
+
+**Quand suggérer le mode `light` au dev** :
+- La description contient « refactor pur », « renommage », « aucun changement de comportement métier », ou similaire
+- La feature touche un seul écran simple ou un seul filtre local
+- Le dev demande un bundle de 2+ features en série
+
+Si le mode n'est pas précisé, prendre `full` par défaut mais signaler la possibilité du mode `light` quand l'un des critères ci-dessus est rencontré.
+
+---
+
 ## Workflow `/feature`
 
 ```
@@ -199,6 +217,9 @@ scores:
 - Sérieux : <n>
 - Améliorations : <n>
 - Détail des sérieux : <liste courte>
+
+## Dette héritée à résorber (détectée par parity-auditor / ds-guardian, hors scope)
+<liste, ou « aucune »>
 
 ## Corrections manuelles post-livraison (verbatim du dev)
 <texte, ou « ras »>

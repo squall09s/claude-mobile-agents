@@ -102,6 +102,7 @@ Crée un fichier par écran dans `ui/screens/<domain>/`, en miroir des fichiers 
 - **Navigation par ID** stricte (jamais d'objet pré-fetché)
 - **Design system maison obligatoire** — pas de Material 3 brut sur les écrans
 - **Parité avec iOS** : les noms d'écrans, composants DS, méthodes VM, cases de navigation **identiques** à ceux d'iOS. Toute divergence doit être documentée par un commentaire expliquant la raison technique (capacité OS différente, lib indisponible, etc.).
+- **Parité des chaînes UI littérales (libellés, empty states, titres, badges)** : aussi stricte que la parité de nommage technique. Quand iOS sert de spec, chaque chaîne UI visible (titre d'écran, libellé de bouton, empty state, label de badge, texte de filtre, summary) doit avoir **exactement le même texte** côté Android, à la casse et à la ponctuation près. Si iOS affiche `Devis envoyé`, Android n'affiche pas `DEVIS`. Si iOS affiche `Aucun chantier`, Android n'affiche pas `Aucune intervention`. Vérification finale obligatoire : grep les libellés iOS du diff et confirmer qu'ils existent à l'identique dans le diff Android.
 - **Pas de Hilt/Koin** si le projet est en DI manuelle (lu dans `project-context.md`)
 - **Pas de Room** sans validation explicite
 - Logger via le mécanisme du projet (`Log.d/i/w/e` ou autre)
@@ -116,6 +117,17 @@ Avant de rendre la main :
    cd <android-dir> && ./gradlew assembleDebug
    ```
    Si erreurs Kotlin / Gradle, **corrige avant de rendre la main**. Le build peut prendre 1-3 min — lance-le en background et attends.
+
+1.bis. **Audit des libellés UI vs iOS** (obligatoire si la feature touche au moins un écran Compose) :
+   ```bash
+   # Récupère les chaînes UI iOS du diff (Text(...), .navigationTitle(...), etc.)
+   git -C <ios-dir> diff -- '*.swift' | grep -E '^\+.*(Text\(|navigationTitle|ArtiTopBar|ArtiEmptyState).*"[^"]+"'
+   # Récupère les chaînes UI Android du diff
+   git -C <android-dir> diff -- '*.kt' | grep -E '^\+.*(Text\(|ArtiTopBar|ArtiEmptyState).*"[^"]+"'
+   ```
+   Compare manuellement les deux listes. **Pour chaque chaîne iOS visible introduite, la chaîne Android correspondante doit être strictement identique.** Si tu détectes une divergence non justifiée, corrige avant de rendre.
+
+   Cas piège fréquent : reprendre un libellé pré-existant côté Android qui datait d'une convention précédente (ex. anciens badges en SCREAMING_CAPS, ancien terme métier renommé). Si le diff iOS modernise un libellé, le diff Android doit suivre, même si cela touche des libellés hors du scope strict du plan.
 
 2. **Rapport git** :
    ```bash
