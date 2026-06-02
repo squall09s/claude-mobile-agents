@@ -76,6 +76,8 @@ Pour chaque ligne ⚠️ ou 🚫, classer :
 
 Les nouvelles divergences sont la responsabilité des reviewers (qui auraient dû les attraper). Si tu en trouves, c'est un signal que le workflow a un trou — signale-le.
 
+**Cas particulier — divergence vue puis livrée en « minor »** : si un reviewer (ios/android) a **signalé** une divergence de parité mais que la feature a quand même été livrée en la classant « mineure » (impact jugé nul), tu dois **la reprendre explicitement** dans ta section « Follow-up suggérés » avec la mention `[signalée-puis-livrée]` et la décision dev associée. Une divergence de parité connue ne doit jamais être seulement « notée puis dissoute » : elle est tracée comme follow-up nommé pour que `/feature-retro` puisse la voir et proposer un rattrapage. Précédent : cas « ID vide » Sentry (SEC-11), vu par android-reviewer, livré en minor, sans follow-up structuré.
+
 Les héritées sont des dettes techniques. Tu ne les signales pas comme bloquantes pour cette feature, mais tu les listes en fin de rapport comme **follow-up suggérés**.
 
 ### Étape 4b — Clés i18n (si applicable)

@@ -36,7 +36,7 @@ Avant de lancer le moindre sub-agent :
    ```bash
    git -C <dir> status --porcelain
    ```
-   Si non vide, **avertis** le dev (sans bloquer) : « Attention, des modifications non commitées existent déjà dans `<dir>` (`<n>` fichiers). Le diff de cette feature sera imprécis dans le journal. Tu peux stash/commit avant ou laisser couler. ». Continue dans tous les cas.
+   Si non vide, **avertis** le dev (sans bloquer) : « Attention, des modifications non commitées existent déjà dans `<dir>` (`<n>` fichiers, dont `<liste des plus suspects : *.xcuserstate, *.xcscheme, build/, fichiers hors scope feature>`). Le diff de cette feature sera imprécis et un commit risque d'embarquer ces fichiers. Tu peux stash/commit avant ou laisser couler — dans ce dernier cas, je committerai **sélectivement** (uniquement les fichiers que les builders ont touchés). ». **Retiens la liste des fichiers déjà présents avant la feature** pour les exclure du commit à l'étape 6. Continue dans tous les cas.
 5. **Détecte le mode d'exécution recommandé** (cf. `CLAUDE.md`, section « Modes d'exécution d'une feature ») :
    - Si la description contient « refactor pur », « renommage », « aucun changement de comportement métier », « cosmétique », « cleanup », ou si elle évoque un bundle (« lance les features X, Y et Z », « enchaîne ces N petites tâches »), **propose explicitement le mode `light`** :
      > Cette feature ressemble à un cas typique du **mode `light`** (refactor pur / petite feature / bundle). Le pipeline complet (planner + reviewers + parity-auditor + ds-guardian) prend ~30-60 min et a montré son sur-coût sur ce type de tâche (gain_time 1-2/5 dans les rétros). Le mode `light` lance les builders en série, sans review formelle, et tient en ~5-15 min. Réponds :
@@ -199,11 +199,15 @@ Pour chaque sous-projet touché, propose au dev de commiter :
 > - **`<android-dir>`** : ... (si applicable)
 > - Ou réponds « skip » pour passer tous les commits.
 
-Si le dev répond `commit <repo>`, exécute :
+Si le dev répond `commit <repo>`, committe **sélectivement** — jamais `git add -A` :
 ```bash
-git -C <dir> add -A
+# N'ajoute QUE les fichiers que les builders de CETTE feature ont touchés
+# (liste connue depuis leurs rapports git status --short), en excluant
+# tout fichier déjà présent au pré-vol (travail en cours du dev, *.xcuserstate, etc.).
+git -C <dir> add <fichier1> <fichier2> ...   # chemins explicites issus du rapport builder
 git -C <dir> commit -m "<type>(<scope>): <slug>"
 ```
+Si un fichier touché par la feature se retrouve mêlé à des modifications non liées du dev dans le même fichier, **signale-le** et demande au dev comment procéder (ne committe pas un mélange en douce). Avant de committer, affiche `git -C <dir> diff --cached --stat` au dev pour confirmation.
 
 **Ne commit jamais sans accord explicite.** Récupère le hash du commit créé pour l'inclure dans le journal de feedback.
 

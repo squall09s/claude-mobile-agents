@@ -110,6 +110,8 @@ Avant de rendre la main :
 
 1. **Build complet** : exécute en background si possible.
    ```bash
+   # Pré-résous d'abord les dépendances SPM (évite les faux négatifs CLI sur les libs à traits) :
+   # xcodebuild -resolvePackageDependencies -project <ios-dir>/<App>.xcodeproj -scheme <scheme>
    # Détermine la commande build dans <ios-dir> :
    # - Si Xcode project : xcodebuild -project <ios-dir>/<App>.xcodeproj -scheme <scheme> -destination 'platform=iOS Simulator,name=iPhone 15' build
    # - Si workspace : xcodebuild -workspace <ios-dir>/<App>.xcworkspace -scheme <scheme> ... build
@@ -118,6 +120,8 @@ Avant de rendre la main :
    Le `scheme` est généralement le nom de l'app. Si tu n'es pas sûr, lance `xcodebuild -list -project <path>` pour les options.
    
    Si erreurs Swift, **corrige-les avant de rendre la main**. Si le build prend > 2 min, lance-le en background et attends son retour.
+
+   **Faux négatifs d'environnement CLI à ne PAS traiter comme bloquants** : certaines erreurs proviennent de l'invocation `xcodebuild` en ligne de commande, pas du code. La plus fréquente : `Disabled default traits by command-line trait configuration on '<package>'` (ex. `sentry-cocoa`) — c'est un artefact de la version d'Xcode CLI, non reproductible dans Xcode GUI. Avant de conclure « build bloqué » sur ce type d'erreur : (a) confirme que le diff ne touche QUE du code applicatif (pas le bloc `traits`/`packageReferences` du `pbxproj`), (b) tente une pré-résolution SPM (`xcodebuild -resolvePackageDependencies`) puis un rebuild avec `DEVELOPER_DIR` pointant sur l'Xcode complet. Si l'erreur persiste sur un diff sain, **ne déclare pas un BLOCKED** : rapporte « build vert en lecture-de-code + faux négatif CLI documenté (à finir dans Xcode GUI) » et continue. N'invente pas un correctif côté projet pour un problème d'environnement.
 
 2. **Rapport git** : capture exactement ce qui a été touché.
    ```bash

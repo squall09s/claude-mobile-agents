@@ -118,6 +118,8 @@ Avant de rendre la main :
    ```
    Si erreurs Kotlin / Gradle, **corrige avant de rendre la main**. Le build peut prendre 1-3 min — lance-le en background et attends.
 
+   **En cas d'OOM / `OutOfMemoryError` / `GC overhead` au build** : c'est un plafond mémoire du projet, pas une erreur de ton code. Surcharge le heap **au lancement CLI uniquement** (ex. `./gradlew assembleDebug -Dorg.gradle.jvmargs="-Xmx4096m"`) — **ne modifie jamais `gradle.properties`** (hors périmètre). Si `project-context.md` documente la commande d'override exacte du projet, utilise-la.
+
 1.bis. **Audit des libellés UI vs iOS** (obligatoire si la feature touche au moins un écran Compose) :
    ```bash
    # Récupère les chaînes UI iOS du diff (Text(...), .navigationTitle(...), etc.)
