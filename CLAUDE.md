@@ -133,6 +133,16 @@ Si le mode n'est pas précisé, prendre `full` par défaut mais signaler la poss
    │   Note : le workflow mobile est SÉQUENTIEL et iOS d'abord. android-builder
    │   utilise le code iOS qui vient d'être produit comme spec implicite pour
    │   garantir la parité (mêmes noms d'écrans, mêmes composants DS, même flow).
+   │
+   │   GATE VISUELLE (features design/maquette uniquement) : quand la description
+   │   fournit une maquette/spec visuelle (« comme la maquette », « fidèle au
+   │   design », fichier image/PDF de référence), une vérification visuelle runtime
+   │   est OBLIGATOIRE avant la review : capturer les écrans cibles sur
+   │   simulateur/émulateur et les comparer à la maquette. Le rendu fidèle ne se
+   │   prouve PAS en lecture de code (cf. FAB baveux / détail derrière tabbar,
+   │   composants DS créés mais non câblés — invisibles à la review). Si aucun
+   │   outillage de capture n'est dispo sur le projet, l'orchestrateur ACTE
+   │   explicitement avec le dev que la vérif se limite à la lecture de code.
    │   android-reviewer relit également le code iOS pour vérifier l'alignement.
    │   i18n-collector extrait les nouvelles clés de traduction introduites par
    │   la feature (scan des invocations dans le diff iOS+Android) et dépose un

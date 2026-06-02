@@ -77,6 +77,7 @@ iOS et Android ont des conventions de nommage différentes par défaut :
 Applique cette règle pour **dédoublonner** les clés détectées des deux côtés :
 - Si `screen.home.title` (iOS) et `screen_home_title` (Android) sont tous deux ajoutés → considère comme **1 clé**, formatée selon la convention canonique du projet (par défaut : dot-séparé iOS-style dans le `.strings` de sortie).
 - Si une clé est ajoutée d'un seul côté → la collecte quand même, mais signale dans le rapport (informatif, pas bloquant — `parity-auditor` tranchera).
+- **Si une clé est présente des DEUX côtés mais avec une valeur (langue principale) DIFFÉRENTE** (ex. `cta.x` = « Nouvelle intervention » iOS vs « Nouveau chantier » Android) → signale-le explicitement dans une rubrique dédiée du rapport « Divergences de valeur sur clés bilatérales ». C'est un trou que la simple comparaison présence/absence ne détecte pas, et qui produit des UI désalignées entre plateformes. Informatif (parity-auditor tranchera), mais à remonter systématiquement.
 
 Si `project-context.md` ne déclare pas de règle de mapping → produis les clés telles que collectées, et signale au dev qu'il faut spec'er la convention.
 
@@ -91,6 +92,8 @@ Pour chaque clé collectée :
 2. **Si la valeur existe dans un fichier de strings** → utilise-la telle quelle.
 
 3. **Si la valeur n'existe pas encore** (cas fréquent : le builder a ajouté l'invocation mais pas encore peuplé la ressource) → tente d'extraire la valeur littérale du **contexte du diff** (ligne ajoutée juste à côté, ex. `text = "Créer un chantier"` dans un commentaire ou un fallback). Sinon, met `TODO` comme valeur dans la langue principale **et** signale dans le rapport que cette clé a besoin d'être peuplée à la main.
+
+> ⚠️ **Format `.xcstrings` (catalog Xcode) — lire l'état réel, pas l'absence apparente** : une clé peut être présente avec une vraie valeur sous `strings.<lang>.stringUnit.value` même si un grep naïf la croit vide. **Avant** de classer une clé `TODO` / « fantôme » / « iOS seul », vérifie son `localizationState` (`translated` vs `needs_review`) et la présence de `stringUnit.value` dans le JSON du catalog. Ne signale `vide`/`fantôme` **que** si la clé est réellement absente ou son `value` réellement vide. Les faux positifs sur ce format sont une dette récurrente — ne pas les propager dans le rapport.
 
 ## Étape 5 — Génération des fichiers de sortie
 

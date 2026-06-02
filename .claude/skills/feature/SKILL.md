@@ -144,6 +144,31 @@ Séquence complète : api d'abord, mobile ensuite.
 
 Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code) avant que le mobile soit écrit. iOS sert ensuite de spec pour Android. `i18n-collector` collecte les nouvelles clés de traduction introduites par les builders mobiles. `parity-auditor` consolide la vue parité structurelle (incluant les clés i18n), `ds-guardian` vérifie le respect fin du design system.
 
+## Étape 4 — Gate visuelle (features design/maquette uniquement)
+
+Déclenche cette étape **uniquement** si la description de la feature fournit une
+référence visuelle (mots « maquette », « comme l'image », « fidèle au design »,
+« comme sur les écrans du dossier », ou un fichier image/PDF cité). Sinon,
+passe directement à l'étape 5.
+
+1. **Avant la review** (ou juste après, selon l'outillage), capture les écrans
+   cibles sur simulateur/émulateur. Si le projet documente un outillage de
+   capture (MCP simulateur, script, seed de données) dans `project-context.md`,
+   utilise-le ; sinon demande au dev s'il veut lancer la capture ou acter la
+   limite « vérif lecture-code uniquement ».
+2. **Compare chaque écran capturé à la maquette** sur : structure (sections,
+   ordre, hiérarchie), états (plein / vide / variantes), pied d'écran (FAB /
+   boutons flottants vs tabbar), ouverture d'au moins un détail depuis chaque
+   écran refondu. Ces deux derniers points ne sont visibles QU'EN RUNTIME.
+3. **Signale tout composant DS créé mais non câblé** dans l'écran cible : c'est
+   le principal symptôme « code livré mais hors maquette ».
+4. Si des écarts visuels bloquants sont détectés, relance le builder concerné
+   sur les correctifs ciblés avant de poursuivre.
+5. Si la vérif n'a pas pu être effectuée (pas d'outillage, données non seedées,
+   API non déployée), **acte-le explicitement** dans la synthèse et dans le
+   journal : « fidélité maquette non démontrée à l'écran, vérifiée en lecture
+   de code uniquement ».
+
 ## Étape 5 — Synthèse
 
 Présente au dev en français concis :

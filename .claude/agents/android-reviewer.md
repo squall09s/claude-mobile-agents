@@ -52,6 +52,8 @@ Pas de Edit, pas de Write. Tu signales, tu ne corriges pas. Tu lis iOS pour comp
 - [ ] DTOs Android isomorphes des DTOs Swift : mêmes noms, mêmes champs, mêmes optionnels (`?` Kotlin ↔ `Optional` Swift)
 - [ ] Endpoints Retrofit cohérents avec ceux de l'énumération iOS : mêmes URLs, mêmes méthodes HTTP, mêmes types
 - [ ] StateFlow en miroir des `@Published` iOS (mêmes états : loading/error/empty/loaded)
+- [ ] **Parité sémantique de navigation** : pour chaque CTA dont le label (ou la clé i18n) est identique iOS/Android, vérifier que la **destination de navigation** est sémantiquement équivalente, pas seulement de signature. Un nom de paramètre trompeur (`onGoToOpportunities` pour un CTA « Voir ma vitrine » qui devrait aller au profil) est un signal de confusion à flagger en bloquant.
+- [ ] **Parité de provenance d'un champ** : pour chaque champ affiché des deux côtés, vérifier qu'il est produit de la même façon — si une plateforme **lit la réponse backend** et l'autre **recalcule l'équivalent localement** (ex. `invitationSent`), c'est une divergence sérieuse (risque de valeurs différentes). Aligner sur la lecture backend.
 - [ ] `viewModelScope.launch` pour les appels suspend, en miroir des `Task { }` iOS
 - [ ] Pas de `Log.*` brut si le projet a un logger spécifique
 - [ ] `data class` pour les modèles, propriétés `val` immutables

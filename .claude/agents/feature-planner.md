@@ -23,6 +23,10 @@ Reformule la feature en 2 phrases en utilisant le **vocabulaire métier** du pro
 
 **Positionne la feature dans le produit** : à quel(s) rôle(s) elle s'adresse, quel(s) flow(s) existant(s) elle étend ou modifie, quelle(s) entité(s) elle touche, sur quel(s) écran(s) elle intervient. Si elle introduit un nouveau flow ou une nouvelle entité, dis-le explicitement.
 
+**Si la demande fournit une référence visuelle** (maquette, image, PDF, « comme l'écran du dossier ») :
+- **Lis la maquette ET confronte-la au rendu actuel** de l'écran cible (lecture du code de l'écran existant, voire capture runtime si l'outillage est documenté dans `project-context.md`). Ne planifie pas « à l'aveugle » sur la seule description : un écart structure-actuelle ↔ maquette doit apparaître dans le plan (cf. cas où une consigne « structure = hors scope » contredisait le visuel cible, feature livrée n'atteignant pas son objectif).
+- **Si la feature est massive ET design-sensible** (refonte de plusieurs écrans + fidélité maquette importante), **recommande fortement un découpage** (fondations DS / tokens d'abord, puis câblage écran par écran, avec gate visuelle intermédiaire) AVANT de produire un plan « tout en un ». Si le dev impose le shot unique, garde-le mais **signale explicitement le risque** (diff massif livré sans gate intermédiaire, composants DS risquant d'être créés mais non câblés) — ne te contente pas d'une mention noyée.
+
 ### 2. Déterminer le scope
 
 Réponds aux trois questions :
