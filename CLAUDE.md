@@ -96,19 +96,16 @@ Le planner **vérifie le contrat API existant** quand il évalue une feature `mo
 
 ## Modes d'exécution d'une feature
 
-Deux modes coexistent, choisis explicitement par le dev au moment d'invoquer `/feature` :
+Deux modes coexistent, **choisis explicitement à chaque feature** via une gate systématique au pré-vol. Vocabulaire : **`normal`** (= `full`, pipeline complet) et **`fast`** (= `light`, pipeline allégé) — les alias `full`/`light` restent acceptés.
 
 | Mode | Quand | Pipeline |
 |---|---|---|
 | `full` (défaut) | Feature nouvelle, écrans inédits, logique métier non triviale | planner → builders → reviewers → i18n-collector → parity-auditor → ds-guardian (scoped) → context-keeper → business-keeper → feedback |
 | `light` | Refactor pur (renommage, déplacement), feature très simple (1 écran ou filtre local), série de petites features bundlées | (questions directes au dev, pas de planner formel) → builders en série → context-keeper en batch → business-keeper en batch → feedback unique. Pas de reviewers, pas de i18n-collector, pas de parity-auditor, pas de ds-guardian. Audit reporté à `/feature-retro` ou à la prochaine feature `full`. |
 
-**Quand suggérer le mode `light` au dev** :
-- La description contient « refactor pur », « renommage », « aucun changement de comportement métier », ou similaire
-- La feature touche un seul écran simple ou un seul filtre local
-- Le dev demande un bundle de 2+ features en série
+**Choix du mode — gate systématique** : à chaque `/feature`, le skill **demande le mode** (`normal`/`fast`) avec une **reco auto**, sauf si le dev utilise le **raccourci préfixe** (`fast:` / `normal:` en tête de demande, ou « en fast / en normal / mode rapide ») qui prend le mode directement.
 
-Si le mode n'est pas précisé, prendre `full` par défaut mais signaler la possibilité du mode `light` quand l'un des critères ci-dessus est rencontré.
+**Reco auto = `fast`** quand : refactor/renommage/cleanup, simple message d'erreur ou libellé à ajouter, extension/réplication d'une feature déjà au **registre des features livrées**, 1 écran ou filtre local, bundle de petites tâches. **Reco auto = `normal`** sinon, et par prudence pour les features auth/sécurité/paiement ou multi-écrans. Le dev tranche toujours (la reco n'est qu'une suggestion).
 
 ---
 
@@ -180,11 +177,13 @@ Si le mode n'est pas précisé, prendre `full` par défaut mais signaler la poss
 
 ---
 
-## Capture de feedback (obligatoire en fin de chaque `/feature`)
+## Capture de feedback (journal objectif obligatoire, notes du dev optionnelles)
 
-À la fin de chaque feature, le skill **doit** capturer le feedback du dev humain. Sans ça, `/feature-retro` n'a rien à exploiter et le système ne progresse pas.
+À la fin de chaque feature, le skill **écrit toujours un journal** dans `.claude/feedback/` — c'est lui qui alimente `/feature-retro`. Deux niveaux :
+- **Données objectives (toujours écrites, zéro saisie du dev)** : verdicts, commits, stats git, `build_attempts`, écarts plan↔code, dette héritée. C'est l'essentiel de ce qu'exploite la rétro.
+- **Notes subjectives du dev (optionnelles)** : les 5 scores + le texte libre. Le dev peut les donner OU répondre « skip » (le journal objectif est alors écrit avec `scores: skipped`). **Ne jamais bloquer le dev sur le feedback.**
 
-### Formulaire affiché
+### Formulaire affiché (optionnel — le dev peut répondre « skip » / Entrée)
 
 ```
 📊 Notes (1=mauvais, 5=excellent) :
@@ -207,13 +206,15 @@ date: YYYY-MM-DD
 slug: <kebab-case>
 feature: "<description originale>"
 scope: api | mobile | api+mobile
+mode: normal | fast
 revoirs: <n tours planner>
 build_attempts: <n>
-review_verdict: PASS | PASS_WITH_MINOR_ISSUES | BLOCKED
+review_verdict: PASS | PASS_WITH_MINOR_ISSUES | BLOCKED | NO_REVIEW_MODE_FAST
 commits:
   api: <hash ou null>
   ios: <hash ou null>
   android: <hash ou null>
+# scores : soit `scores: skipped` (le dev a skippé les notes), soit le bloc 5 champs ci-dessous
 scores:
   plan: <1-5>
   code: <1-5>
@@ -316,7 +317,7 @@ Tout agent qui tenterait d'écrire hors de son périmètre doit refuser et signa
 - Ne pas modifier `CLAUDE.md` générique depuis une retro projet sans confirmation **explicite** que c'est un pattern cross-projets
 - Ne pas inventer une convention non présente dans `project-context.md` — préférer demander
 - Ne pas écrire iOS sans Android (ou inversement) pour une feature `mobile` ou `api+mobile`
-- Ne pas skipper la capture de feedback à la fin d'un `/feature`
+- Ne pas skipper l'écriture du **journal objectif** en fin de `/feature` (les notes subjectives du dev, elles, sont optionnelles — il peut « skip »)
 - Ne pas dépasser le périmètre d'écriture défini
 
 ---

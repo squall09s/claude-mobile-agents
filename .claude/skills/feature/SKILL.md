@@ -37,12 +37,15 @@ Avant de lancer le moindre sub-agent :
    git -C <dir> status --porcelain
    ```
    Si non vide, **avertis** le dev (sans bloquer) : « Attention, des modifications non commitées existent déjà dans `<dir>` (`<n>` fichiers, dont `<liste des plus suspects : *.xcuserstate, *.xcscheme, build/, fichiers hors scope feature>`). Le diff de cette feature sera imprécis et un commit risque d'embarquer ces fichiers. Tu peux stash/commit avant ou laisser couler — dans ce dernier cas, je committerai **sélectivement** (uniquement les fichiers que les builders ont touchés). ». **Retiens la liste des fichiers déjà présents avant la feature** pour les exclure du commit à l'étape 6. Continue dans tous les cas.
-5. **Détecte le mode d'exécution recommandé** (cf. `CLAUDE.md`, section « Modes d'exécution d'une feature ») :
-   - Si la description contient « refactor pur », « renommage », « aucun changement de comportement métier », « cosmétique », « cleanup », ou si elle évoque un bundle (« lance les features X, Y et Z », « enchaîne ces N petites tâches »), **propose explicitement le mode `light`** :
-     > Cette feature ressemble à un cas typique du **mode `light`** (refactor pur / petite feature / bundle). Le pipeline complet (planner + reviewers + parity-auditor + ds-guardian) prend ~30-60 min et a montré son sur-coût sur ce type de tâche (gain_time 1-2/5 dans les rétros). Le mode `light` lance les builders en série, sans review formelle, et tient en ~5-15 min. Réponds :
-     > - **« light »** pour le mode allégé
-     > - **« full »** pour le pipeline complet (défaut)
-   - Pour toute autre description, démarre directement en mode `full`.
+5. **Choix du mode d'exécution — gate systématique** (cf. `CLAUDE.md`, section « Modes d'exécution d'une feature »). Vocabulaire : **`normal`** = pipeline complet (= ex-`full`), **`fast`** = pipeline allégé (= ex-`light`). Les alias `full`/`light` restent acceptés.
+   - **Raccourci préfixe** : si la demande du dev commence par `fast:` / `normal:` (ou contient « en fast », « en normal », « mode rapide »), **prends ce mode directement SANS poser la question** — confirme-le en une ligne et enchaîne.
+   - **Sinon, demande SYSTÉMATIQUEMENT le mode** au dev, avec une **reco auto** basée sur la description :
+     > Quel mode pour cette feature ?
+     > - **`normal`** : pipeline complet (planner + reviewers + i18n-collector + parity-auditor + ds-guardian + keepers). Feature nouvelle, écrans inédits, logique non triviale, auth/sécurité, multi-écrans. ~30-60 min.
+     > - **`fast`** : pas de planner formel (questions directes), builders en série, **pas de reviewers/i18n/parity/ds-guardian**, keepers en batch. Refactor, petit delta, réplication d'un pattern déjà livré, simple message/libellé, 1 écran simple, bundle. ~5-15 min.
+     >
+     > **Ma reco : `<normal|fast>`** — `<raison courte tirée de la description>`. Réponds « normal », « fast », ou valide.
+   - **Règle de reco** : `fast` si la description évoque un refactor/renommage/cleanup, un simple message d'erreur / libellé, l'extension ou la réplication d'une feature déjà présente au **registre des features livrées** (`business-context.md`), 1 écran ou filtre local, ou un bundle de petites tâches ; `normal` sinon — et par prudence pour toute feature auth/sécurité/paiement ou multi-écrans. Le dev tranche toujours.
 
 ## Mode `light` — pipeline allégé
 
@@ -222,16 +225,9 @@ Cette étape lutte contre l'obsolescence du `project-context.md`. Sans elle, le 
 
    **a) Rien à intégrer** (cas fréquent et normal) : le rapport indique « Aucun patch nécessaire ». Annonce-le au dev et passe à l'étape 8.
 
-   **b) 1 à 5 patches proposés** : présente le rapport complet au dev. Puis pour chaque patch :
+   **b) 1 à 5 patches proposés** : présente le rapport complet + **tous les patches numérotés d'un coup** (chacun : `[helper|ds-component|pattern|convention|dependency]` + justification + diff), puis demande une **réponse groupée** :
 
-   > **Patch <N>** — [helper|ds-component|pattern|convention|dependency]
-   > Justification : `<...>`
-   >
-   > ```diff
-   > ...
-   > ```
-   >
-   > Réponds : `apply` / `skip` / `edit : ...` / `stop`.
+   > Réponds en une fois : **« apply all »** / **« apply 1,3 »** / **« apply all sauf 2 »** / **« skip all »** / **« edit N : … »**.
 
 3. **Avant d'appliquer le premier patch validé**, crée un backup obligatoire :
    ```bash
@@ -256,16 +252,9 @@ Cette étape lutte contre l'obsolescence du `business-context.md`. Sans elle, la
 
    **a) Patch registry seul** (cas le plus fréquent — la feature est livrée, on note ça mais sans plus) : présente le patch, applique-le après validation.
 
-   **b) 1 à 6 patches proposés** (registry + autres patches métier) : présente le rapport complet. Pour chaque patch :
+   **b) 1 à 6 patches proposés** (registry + autres patches métier) : présente le rapport complet + **tous les patches numérotés d'un coup** (chacun : `[registry|screen|entity|state|flow|vocabulary|role|placeholder-fill]` + justification + diff), puis demande une **réponse groupée** :
 
-   > **Patch <N>** — [registry|screen|entity|state|flow|vocabulary|role|placeholder-fill]
-   > Justification : `<...>`
-   >
-   > ```diff
-   > ...
-   > ```
-   >
-   > Réponds : `apply` / `skip` / `edit : ...` / `stop`.
+   > Réponds en une fois : **« apply all »** / **« apply 1,3 »** / **« apply all sauf 2 »** / **« skip all »** / **« edit N : … »**.
 
    **c) Rien à intégrer** (feature purement technique) : annonce-le au dev et passe à l'étape 9.
 
@@ -281,11 +270,13 @@ Cette étape lutte contre l'obsolescence du `business-context.md`. Sans elle, la
 
 6. Récap : « Contexte métier mis à jour : <n> patches appliqués sur <m> proposés. Backup : .claude/.business-backup/<date>-<slug>-before.md »
 
-## Étape 9 — Capture du feedback (OBLIGATOIRE)
+## Étape 9 — Journal de feedback (journal objectif OBLIGATOIRE, notes du dev OPTIONNELLES)
 
-**Ne saute jamais cette étape**, même si le dev est pressé. Sans feedback, `/feature-retro` n'a rien à exploiter.
+Le **journal est toujours écrit** (il alimente `/feature-retro`, qui exploite surtout les **données objectives**). Les **notes subjectives du dev sont optionnelles** : ne bloque jamais le dev sur le feedback.
 
-Affiche le formulaire suivant et **attends** la réponse :
+1. **Écris d'abord le journal des données OBJECTIVES** (aucune saisie du dev requise) dans `.claude/feedback/YYYY-MM-DD-<slug>.md` (slug kebab-case), au format `CLAUDE.md` : frontmatter complet (dont `mode: normal|fast`) + sections factuelles (Description, Plan validé / cadrage, Écarts plan↔code, Verdict review + bloquants/sérieux, **Dette héritée à résorber**, Stats git, Fichiers touchés). Mets `scores: skipped` et les sections « Corrections manuelles » / « Détection à améliorer » à `non renseigné`.
+
+2. **Propose les notes en OPTIONNEL** (formulaire ci-dessous), en précisant que c'est **skippable d'un mot** (« skip » / Entrée) — ne bloque pas :
 
 ```
 Avant de clôturer, j'ai besoin de ton feedback (utile pour /feature-retro).
@@ -304,9 +295,7 @@ Avant de clôturer, j'ai besoin de ton feedback (utile pour /feature-retro).
 Tu peux répondre en une ligne par item. Pour skipper le texte libre, écris « ras ».
 ```
 
-Une fois la réponse reçue, écris le journal dans `.claude/feedback/YYYY-MM-DD-<slug>.md` (slug en kebab-case) au format strict défini dans `CLAUDE.md` (frontmatter complet + sections).
-
-Confirme : « Journal écrit dans `.claude/feedback/<filename>` — `/feature-retro` pourra l'exploiter. »
+3. **Si le dev donne des notes** → complète le frontmatter `scores:` et les 2 sections texte, puis confirme. **Si le dev skip** (« skip », « ras », Entrée, ou il enchaîne sur autre chose) → laisse `scores: skipped`, **n'insiste pas**, confirme : « Journal objectif écrit dans `.claude/feedback/<filename>` (notes skippées) — `/feature-retro` a sa matière. » **Ne redemande jamais** les notes si le dev a skippé.
 
 ## Étape 10 — Clôture
 
@@ -322,7 +311,7 @@ Si la feature s'est mal passée et que tu veux tout annuler :
 
 ## Règles d'orchestration
 
-- **Gates humaines** : (1) après le plan, (2) à chaque patch context-keeper, (3) à chaque patch business-keeper. Pas d'autre gate pendant build/review.
+- **Gates humaines** : (1) choix du mode au pré-vol (sauf raccourci préfixe), (2) après le plan, (3) validation **groupée** des patches context-keeper, (4) validation **groupée** des patches business-keeper. Feedback **non bloquant** (notes du dev optionnelles, journal objectif toujours écrit). Pas d'autre gate pendant build/review.
 - **Pré-vol git non bloquant** : avertis et continue.
 - **Discovery déclenchée automatiquement** si `project-context.md` ou `business-context.md` est absent ou template-like.
 - **Si un sub-agent échoue ou rend un output vide** : remonte au dev, ne tente pas de réparer toi-même.
