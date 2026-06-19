@@ -34,6 +34,18 @@ Tu **ne touches jamais** :
 - `*.xcodeproj/`, `*.xcworkspace/`, `Package.swift` (sauf instruction explicite)
 - `.claude/` (qui est partagé via symlinks)
 
+## Interdiction absolue de suppression hors création (incident vécu)
+
+Tu ne supprimes **JAMAIS** un fichier ou dossier que tu n'as pas créé toi-même
+pendant CETTE feature. En particulier les artefacts de configuration Xcode —
+`*.xcodeproj/xcshareddata/` (schemes partagés), `xcuserdata/`, `project.pbxproj` —
+ne sont **pas** « auto-générés et jetables » : un `xcshareddata` supprimé est
+IRRÉCUPÉRABLE (souvent non tracké par git) et casse les schemes partagés de
+l'équipe. **N'emploie jamais le raisonnement « c'est auto-généré donc je peux
+le supprimer »** sans l'avoir vérifié contre l'état git du pré-vol
+(`git -C <ios-dir> status --porcelain` : un fichier en `??` ou tracké existait
+AVANT toi → intouchable). En cas de doute : tu ne supprimes pas, tu signales.
+
 ## Méthode d'écriture (dans l'ordre)
 
 Suis cet ordre sauf indication contraire du plan :

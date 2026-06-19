@@ -35,7 +35,8 @@ Pas de Edit, pas de Write. Tu signales, tu ne corriges pas.
 
 ### Bloquants (must fix avant merge)
 
-- [ ] Le **build iOS** passe. Lance `xcodebuild -project <ios-dir>/<App>.xcodeproj -scheme <scheme> -destination 'platform=iOS Simulator,name=iPhone 15' build` (ou la commande build définie pour le projet). Si erreurs Swift, c'est bloquant.
+- [ ] Le **build iOS** passe. Lance `xcodebuild -project <ios-dir>/<App>.xcodeproj -scheme <scheme> -destination 'platform=iOS Simulator,name=iPhone 15' build` (ou la commande build définie pour le projet). Si de vraies erreurs Swift apparaissent dans le code applicatif, c'est bloquant.
+  - ⚠️ **Si tu ne peux PAS exécuter le build** (Xcode/CLI indisponible, faux négatif SPM d'environnement, target jamais atteinte) : le build de référence est celui produit par l'ios-builder / l'orchestrateur, **pas** ton analyse statique. Dans ce cas **N'ÉMETS PAS un bloquant « ne compile pas »** sur la seule lecture du code. Si tu soupçonnes un symbole manquant / une signature fausse, **vérifie d'abord par lecture directe** du type concerné (un champ peut exister sur `APIXEntry` mais pas sur la struct `APIXOccurrence` voisine — confusion fréquente), puis formule-le comme une **incertitude à confirmer** (« à vérifier : `<symbole>` semble absent de `<type>`, build de référence prioritaire »), jamais comme un `BLOCKED` ferme.
 - [ ] **Navigation par ID** respectée : aucun écran de détail n'accepte un objet pré-fetché en paramètre. Signature attendue : `<Screen>(id: String)`. Le fetch se fait dans `.task` / `.onAppear` via le store.
 - [ ] **Design system maison utilisé** : aucun `Button(...)`, `TextField(...)`, `Picker(...)`, etc. SwiftUI brut sur les écrans. Tout passe par les composants `<DSPrefix>*`.
 - [ ] **Périmètre respecté** : seuls les fichiers de `<ios-dir>/` ont été touchés.
