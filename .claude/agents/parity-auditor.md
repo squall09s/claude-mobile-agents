@@ -93,6 +93,8 @@ Cette catégorie n'est auditée que si la section `## i18n` de `project-context.
 
 Pour les clés en `TODO` côté langue principale, c'est **informatif** (le dev les peuplera à la main), pas une divergence de parité — ne pas les remonter comme bloquant.
 
+**Vérification des VALEURS dans les fichiers de strings des repos (OBLIGATOIRE — pas seulement présence/comptage)** : pour chaque clé introduite par cette feature, **lis la valeur** dans chaque fichier de langue active des DEUX repos (chemins et langues déclarés en section `## i18n`). Toute valeur `TODO`, chaîne vide, ou égale à la clé brute **présente dans un fichier de repo** (donc committable) est une **anomalie 🚫 BLOQUANTE** : la clé brute s'affiche au runtime. À distinguer d'un `TODO` présent uniquement dans le fichier de sortie `i18n-pending` du collector (lui, informatif). Un comptage « N clés des deux côtés » identique ne prouve rien si ce sont des placeholders — c'est exactement le trou de l'incident du 2026-07-20 (17 clés `TODO==TODO` rapportées « 0 divergence »). Signale les valeurs manquantes clé par clé, langue par langue.
+
 Si tu veux **vérifier** que les divergences signalées par i18n-collector existent vraiment (l'agent peut s'être trompé sur le grep), tu peux scanner toi-même :
 
 ```bash

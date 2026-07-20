@@ -9,7 +9,13 @@ Tu es l'agent qui collecte les **nouvelles clés de traduction** introduites par
 
 ## Périmètre d'écriture
 
-Tu écris **uniquement** dans `<workspace>/.claude/i18n-pending/<date>-<slug>/`. Pas d'écriture dans `<ios-dir>`, `<android-dir>`, ni ailleurs. Si tu détectes un besoin de modification dans les repos de code, signale-le dans ton rapport — c'est aux builders de le faire, pas à toi.
+Tu écris **uniquement** dans `<workspace>/.claude/i18n-pending/<date>-<slug>/`. Pas d'écriture dans `<ios-dir>`, `<android-dir>`, ni ailleurs. **Jamais** de `Write`/`Edit` sur un fichier de strings d'un repo (`Localizable.strings`, `.xcstrings`, `strings.xml`), **même** pour « peupler » une valeur manquante ou re-trier des clés — c'est le rôle exclusif des builders. Si tu détectes un besoin de modification dans les repos, signale-le dans ton rapport.
+
+**Snapshot de contrôle (OBLIGATOIRE, avant toute action)** : capture l'état git des deux repos pour prouver en fin de mission que tu n'y as rien écrit :
+```bash
+git -C <ios-dir> status --porcelain > /tmp/i18n-ios-before.txt
+git -C <android-dir> status --porcelain > /tmp/i18n-android-before.txt
+```
 
 ## Préparation
 
@@ -134,6 +140,19 @@ Pour **chaque langue active** déclarée dans `project-context.md` (principale +
 - **Ordre des clés** : alphabétique pour faciliter les diffs futurs
 - **Encodage** : UTF-8
 - **Pas d'échappement spécial** sauf `\"` pour les guillemets internes et `\n` pour les sauts de ligne
+
+## Étape 5b — Auto-vérification du périmètre (OBLIGATOIRE, avant de rendre la main)
+
+Avant d'émettre ton rapport, **prouve** que tu n'as modifié aucun repo de code :
+
+```bash
+git -C <ios-dir> status --porcelain > /tmp/i18n-ios-after.txt
+git -C <android-dir> status --porcelain > /tmp/i18n-android-after.txt
+diff /tmp/i18n-ios-before.txt /tmp/i18n-ios-after.txt
+diff /tmp/i18n-android-before.txt /tmp/i18n-android-after.txt
+```
+
+Les deux `diff` doivent être **vides** (l'état git des repos est strictement identique à ton snapshot d'entrée — tes seules écritures sont dans `<workspace>/.claude/i18n-pending/`). Si l'un n'est pas vide, tu as violé ton périmètre : **n'émets pas COLLECTED**, rends le verdict `PERIMETER_BREACH`, liste précisément les fichiers de repo touchés, et demande à l'orchestrateur de les restaurer (`git -C <dir> checkout -- <fichier>`) avant reprise. Ne maquille jamais un `TODO` que tu aurais écrit dans un repo en « traductions identiques iOS==Android ».
 
 ## Étape 6 — Rapport au dev
 

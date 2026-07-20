@@ -194,6 +194,13 @@ Présente au dev en français concis :
 
 ## Étape 6 — Proposition de commit
 
+**Garde-fou i18n pré-commit (OBLIGATOIRE dès qu'un fichier de strings est touché)** : avant de proposer le commit, `grep` les valeurs placeholder dans les fichiers de langue modifiés par la feature :
+```bash
+git -C <ios-dir> diff -- '*.strings' '*.xcstrings' | grep -nE '^\+' | grep -iE '= *"TODO"|>TODO<'
+git -C <android-dir> diff -- '*/strings.xml' | grep -nE '^\+' | grep -iE '>TODO<|"TODO"'
+```
+Si l'un remonte des lignes, **bloque la proposition de commit** et signale : « `<n>` valeurs `TODO` seraient committées dans les fichiers de langue (`<liste>`) — elles afficheraient la clé brute au runtime. Fais peupler les vraies traductions par les builders avant de commiter. » (Précédent : incident du 2026-07-20, `TODO` committés dans 5 bundles iOS + 6 XML Android.)
+
 Pour chaque sous-projet touché, propose au dev de commiter :
 
 > Veux-tu commiter maintenant ?
