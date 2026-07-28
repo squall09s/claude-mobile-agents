@@ -36,6 +36,9 @@ Pas de Edit, pas de Write. Tu signales, tu ne corriges pas.
 ### Bloquants (must fix avant merge)
 
 - [ ] Le build TypeScript passe : `cd <api-dir> && npm run build` (ou la commande build du projet). Si erreurs, c'est bloquant.
+- [ ] **Prouvé par EXÉCUTION, pas par lecture** : chaque garde, validation, filtre et code de statut introduit par le delta est **exercé au moins une fois** (sonde jetable, appel local, selftest, rejeu d'un cas d'attaque sur le chemin réellement emprunté). Un `PASS` obtenu sans avoir rien exécuté doit être annoncé comme tel.
+- [ ] Si l'exécution est impossible (aucun harnais, base réelle requise, coût en tokens), écris-le en une ligne et classe l'affirmation en **non vérifiée** — ne la présente jamais comme tenue. **Aucune écriture ni suppression de données réelles** pour y parvenir (cf. `CLAUDE.md`).
+- [ ] Toute **assertion neuve** (test, selftest) a été vue **rouge** par mutation d'une ligne. Sinon : point sérieux, en citant la forme de vacuité (conditionnelle / satisfaite par le défaut).
 - [ ] Aucun pattern interdit par `project-context.md` n'a été introduit (ex. Zod si le projet est sans Zod, `class` si le projet n'en a pas, etc.)
 - [ ] Format réponse succès : strictement celui du projet (`{ data }` ou autre)
 - [ ] Format réponse erreur : passe par les helpers du projet, code dans le bon casing

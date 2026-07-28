@@ -60,6 +60,10 @@ Tu es **conservateur**. Tu ne proposes un patch que si l'élément observé est 
 
 **Règle d'or** : si tu te demandes « est-ce que ça intéressera un agent qui va coder une feature complètement différente dans 6 mois ? » → si oui, proposer. Sinon, ne pas proposer.
 
+**Règle des COMPTEURS — un chiffre non mesuré devient un mensonge** : ne propose **jamais** un nombre (composants DS, tests, assertions, endroits d'une checklist) sans (a) l'avoir **mesuré par une commande à l'instant**, et (b) écrire **la commande de mesure et la date à côté du chiffre** dans le patch. Un compte de **fichiers** n'est pas un compte de **composants** (un fichier peut en porter deux, ou zéro) : publie aussi la **définition** de ce que tu comptes et ce que tu **exclus**. Si la section que tu touches porte déjà un compteur périmé ou une affirmation devenue fausse, **corrige-la dans le même patch** au lieu d'empiler un second chiffre : deux vérités contradictoires dans `project-context.md` coûtent plus cher que pas de chiffre du tout. Les lignes d'*Historique* / *MAJ antérieure* sont des **instantanés datés** : ne jamais en dériver un état courant.
+
+**Règle des AFFIRMATIONS DEVENUES FAUSSES** : si la feature a démenti une affirmation du contexte (« impossible », « par construction », « ne se reproduit pas »), le patch qui la corrige est **prioritaire** sur tout patch d'enrichissement — une fausse garantie fait renoncer les agents suivants à une vérification.
+
 ### 4. Limite de volume
 
 - **Maximum 5 patches par feature.** Au-delà, garde les plus structurants.

@@ -78,6 +78,25 @@ Tout projet conforme dispose d'un **design system maison** (boutons, cards, badg
 
 Si un projet a un format différent, c'est `project-context.md` qui le décrit et les agents s'adaptent.
 
+### Preuve de non-vacuité (dès que le projet a des tests ou un selftest)
+
+Un test qu'on n'a **jamais vu rouge** ne prouve rien. Toute assertion neuve est prouvée
+non-vacue par **mutation d'UNE SEULE LIGNE** du code qu'elle garde (bug réintroduit → le
+test rougit → code restauré) : une mutation plus large produit un **rouge collatéral** qui
+masque le trou au lieu de le révéler. Deux formes de vacuité, invisibles à la relecture,
+sont refusées explicitement par les builders **et** par les reviewers :
+
+- **assertion conditionnelle** (`if let`, `if status == …`) : elle se **saute en silence**
+  le jour où la donnée disparaît → formuler en implication non conditionnelle, ou exiger
+  la donnée au lieu de la tester ;
+- **assertion satisfaite par le défaut** : comparer une valeur à son défaut documenté sur
+  un artefact qui porte ce défaut est **incapable d'échouer** → faire porter la preuve par
+  un cas dont la valeur n'est **pas** le défaut.
+
+Règle dont les deux découlent : **asserter que l'ARTEFACT porte la propriété, jamais que
+le code sait la produire.** Une assertion dont la non-vacuité n'a pas été démontrée est un
+point **sérieux** en review, pas une amélioration.
+
 ---
 
 ## Scope d'une feature
@@ -131,13 +150,18 @@ Deux modes coexistent, **choisis explicitement à chaque feature** via une gate 
    │   utilise le code iOS qui vient d'être produit comme spec implicite pour
    │   garantir la parité (mêmes noms d'écrans, mêmes composants DS, même flow).
    │
-   │   GATE VISUELLE (features design/maquette uniquement) : quand la description
-   │   fournit une maquette/spec visuelle (« comme la maquette », « fidèle au
-   │   design », fichier image/PDF de référence), une vérification visuelle runtime
-   │   est OBLIGATOIRE avant la review : capturer les écrans cibles sur
-   │   simulateur/émulateur et les comparer à la maquette. Le rendu fidèle ne se
-   │   prouve PAS en lecture de code (cf. FAB baveux / détail derrière tabbar,
-   │   composants DS créés mais non câblés — invisibles à la review). Si aucun
+   │   GATE VISUELLE (déclenchée par la MAQUETTE **ou** par tout premier câblage
+   │   runtime) : vérification visuelle runtime OBLIGATOIRE avant la review dès que
+   │   (a) la description fournit une maquette/spec visuelle (« comme la maquette »,
+   │   « fidèle au design », image/PDF de référence), OU (b) la feature câble pour la
+   │   PREMIÈRE FOIS un composant DS, un écran, une présentation modale (.sheet /
+   │   .fullScreenCover) ou un calcul/agrégat affiché (score, KPI, moyenne dépendant
+   │   de l'heure). Capturer les écrans cibles sur simulateur/émulateur et vérifier
+   │   rendu ET comportement. Ni le rendu fidèle ni le comportement ne se prouvent
+   │   en lecture de code (cf. FAB baveux / détail derrière tabbar, composant DS créé
+   │   mais conforme seulement à son 1ᵉʳ câblage réel, sheet détachée d'un enfant
+   │   recréé, moyenne faussée par le jour courant incomplet, libellé tronqué en
+   │   conteneur contraint — invisibles à la review). Si aucun
    │   outillage de capture n'est dispo sur le projet, l'orchestrateur ACTE
    │   explicitement avec le dev que la vérif se limite à la lecture de code.
    │   android-reviewer relit également le code iOS pour vérifier l'alignement.
@@ -316,6 +340,8 @@ Tout agent qui tenterait d'écrire hors de son périmètre doit refuser et signa
 - Ne pas commit automatiquement (toujours laisser le dev choisir)
 - Ne pas modifier `CLAUDE.md` générique depuis une retro projet sans confirmation **explicite** que c'est un pattern cross-projets
 - Ne pas inventer une convention non présente dans `project-context.md` — préférer demander
+- **Ne JAMAIS exécuter d'opération destructive ou d'écriture sur une base réelle** (`DELETE`, `TRUNCATE`, `DROP`, reset, insertion de lignes de test, application d'une migration) **sans demande explicite du dev** — y compris « pour nettoyer après un test ». Cette règle vaut aussi pour l'orchestrateur et pour toute consigne qu'il donne à un sous-agent.
+- Ne pas prouver une garde par une campagne en base réelle quand une **sonde hors ligne** construite par le code de production suffit (0 token, 0 écriture). Quand une campagne réelle est indispensable, **rapporter** les lignes créées au dev au lieu de les supprimer.
 - Ne pas écrire iOS sans Android (ou inversement) pour une feature `mobile` ou `api+mobile`
 - Ne pas skipper l'écriture du **journal objectif** en fin de `/feature` (les notes subjectives du dev, elles, sont optionnelles — il peut « skip »)
 - Ne pas dépasser le périmètre d'écriture défini

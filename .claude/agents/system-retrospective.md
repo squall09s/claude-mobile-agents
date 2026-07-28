@@ -39,6 +39,9 @@ Lis les fichiers que tes patches peuvent cibler :
 - `.claude/agents/ios-reviewer.md` (symlink)
 - `.claude/agents/android-builder.md` (symlink)
 - `.claude/agents/android-reviewer.md` (symlink)
+- `.claude/agents/i18n-collector.md`, `parity-auditor.md`, `ds-guardian.md` (symlinks)
+- `.claude/agents/context-keeper.md`, `business-keeper.md`, `system-retrospective.md` (symlinks) — ce sont eux qui écrivent les contextes et cette rétro : ils sont patchables
+- `.claude/skills/feature-retro/SKILL.md`, `.claude/skills/feature-rollback/SKILL.md`, `.claude/skills/ds-audit/SKILL.md` (symlinks)
 
 Note : tu lis ces fichiers via leur chemin local au projet (le symlink résout transparentement vers le repo générique).
 
@@ -47,7 +50,11 @@ Note : tu lis ces fichiers via leur chemin local au projet (le symlink résout t
 Croise les journaux pour identifier :
 
 **Signaux de problème** :
-- **Scores bas répétés** sur une catégorie (ex. `review: 2/5` dans 3 journaux : l'api-reviewer rate des choses)
+- **Prémisses du plan démenties** par un builder ou un reviewer (garde inopérante, compteur faux, composant DS inexistant, commande cassée) : le planner a supposé au lieu de mesurer
+- **`build_attempts` qui montent** sans que le livrable soit en cause (tours de correctifs déclenchés par le dispositif de preuve : assertion vacue, sonde manquante)
+- **Défauts trouvés au RUNTIME seulement** (capture, harnais, exploit rejoué) — a fortiori sur une feature signée `PASS` sans exécution
+- **Compteurs / affirmations du contexte devenus faux** (deux vérités contradictoires dans `project-context.md`)
+- **Scores bas répétés** sur une catégorie — **seulement si** le dev renseigne les notes (ex. `review: 2/5` dans 3 journaux)
 - **Corrections manuelles récurrentes** mentionnant la même classe d'erreur (mappers oubliés, codes d'erreur mal nommés, validation manquante)
 - **Bloquants build récurrents** (api-builder oublie la même règle TS)
 - **Écarts plan ↔ code récurrents** (api-builder ne respecte pas le plan sur tel aspect)
@@ -108,17 +115,19 @@ Markdown en français :
 - Journaux lus : <n> (du <date_première> au <date_dernière>)
 - Journaux archivés ignorés : <n>
 
-## Statistiques
+## Statistiques (données OBJECTIVES d'abord)
 
-| Catégorie | Moyenne | Tendance |
+| Métrique | Valeur | Tendance |
 |---|---|---|
-| Qualité plan       | x.x/5 | ↗ / ↘ / → |
-| Conformité code    | x.x/5 | ... |
-| Pertinence review  | x.x/5 | ... |
-| Effort manuel post | x.x/5 | ... |
-| Gain de temps      | x.x/5 | ... |
+| `build_attempts` moyen        | x.x | ↗ / ↘ / → |
+| `revoirs` du plan (moyenne)   | x.x | ... |
+| 1ʳᵉˢ passes de review BLOCKED | n/<revues> | ... |
+| Bloquants / sérieux (cumul)   | n / n | ... |
+| Écarts plan ↔ code qualifiés de **prémisse fausse** | n | ... |
 
-**Revoirs moyens** : x.x  •  **Build attempts moyens** : x.x  •  **Verdicts BLOCKED** : n/<total>
+**Verdicts finaux** : PASS <n> · PASS_WITH_MINOR_ISSUES <n> · BLOCKED <n> · NO_REVIEW_MODE_FAST <n>
+
+**Notes subjectives** : <n>/<total> journaux avec `scores` remplis. Si la majorité est `skipped`, dis-le en UNE ligne, **n'affiche aucune moyenne /5**, et ne traite pas l'absence de notes comme un signal.
 
 **Répartition des scopes** : api <n>, mobile <n>, api+mobile <n>
 

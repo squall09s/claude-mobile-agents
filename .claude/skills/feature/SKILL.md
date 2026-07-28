@@ -147,12 +147,17 @@ Séquence complète : api d'abord, mobile ensuite.
 
 Justification : les apps consomment l'API, donc l'API doit être prête (au moins en code) avant que le mobile soit écrit. iOS sert ensuite de spec pour Android. `i18n-collector` collecte les nouvelles clés de traduction introduites par les builders mobiles. `parity-auditor` consolide la vue parité structurelle (incluant les clés i18n), `ds-guardian` vérifie le respect fin du design system.
 
-## Étape 4 — Gate visuelle (features design/maquette uniquement)
+## Étape 4 — Gate visuelle (maquette OU premier câblage runtime)
 
-Déclenche cette étape **uniquement** si la description de la feature fournit une
-référence visuelle (mots « maquette », « comme l'image », « fidèle au design »,
-« comme sur les écrans du dossier », ou un fichier image/PDF cité). Sinon,
-passe directement à l'étape 5.
+Déclenche cette étape (cf. `CLAUDE.md`, section « Workflow ») dès que **(a)** la
+description fournit une référence visuelle (« maquette », « comme l'image »,
+« fidèle au design », fichier image/PDF cité), **OU (b)** la feature câble pour la
+PREMIÈRE FOIS un composant DS, un écran, une présentation modale (`.sheet` /
+`.fullScreenCover`) ou un calcul/agrégat affiché. Un verdict de review `PASS` ne
+dispense pas de cette étape : trois features de ce type ont été signées
+`PASS, 0 sérieux` en lecture puis corrigées au runtime, dont une par une feature
+de suivi entière. Elle s'applique **aussi en mode `fast`** — c'est justement le
+mode sans reviewer. Sinon, passe directement à l'étape 5.
 
 1. **Avant la review** (ou juste après, selon l'outillage), capture les écrans
    cibles sur simulateur/émulateur. Si le projet documente un outillage de
@@ -163,6 +168,15 @@ passe directement à l'étape 5.
    ordre, hiérarchie), états (plein / vide / variantes), pied d'écran (FAB /
    boutons flottants vs tabbar), ouverture d'au moins un détail depuis chaque
    écran refondu. Ces deux derniers points ne sont visibles QU'EN RUNTIME.
+2b. **Établis la MATRICE de capture avant de capturer** : une matrice à un seul
+   scénario n'est pas une matrice. Croise chaque **état dégradé** (erreur, vide,
+   refus serveur, action en vol) avec un scénario portant le **type de composant
+   visé**, et inclus **tout écran de production modifié**, même d'une ligne. Un
+   état trop court pour être capturé (1-2 s) doit être **rendu capturable**
+   (réponse qui ne vient jamais) plutôt qu'exclu. Les données injectées doivent
+   être au **volume réel** : un mock à 1 ligne masque un défaut à 4 lignes.
+   Dis explicitement quels croisements restent **non couverts** — c'est un trou
+   de matrice qui a laissé passer un bloquant atteignable sans une ligne de code.
 3. **Signale tout composant DS créé mais non câblé** dans l'écran cible : c'est
    le principal symptôme « code livré mais hors maquette ».
 4. Si des écarts visuels bloquants sont détectés, relance le builder concerné
